@@ -10,22 +10,22 @@ export class ApiError extends Error {
     }
 
     static badRequest = (message: string, details?: unknown) => {
-        new ApiError(400, message, details);
+        return new ApiError(400, message, details);
     };
 
     static unauthorized = (message = "Authentication required") => {
-        new ApiError(401, message);
+        return new ApiError(401, message);
     };
 
     static forbidden = (message = "You do not have access to this resource") => {
-        new ApiError(403, message);
+        return new ApiError(403, message);
     };
 
     static notFound = (message = "Resource not found") => {
-        new ApiError(404, message);
+        return new ApiError(404, message);
     };
 
     static conflict = (message: string) => {
-        new ApiError(409, message);
+        return new ApiError(409, message);
     };
 }

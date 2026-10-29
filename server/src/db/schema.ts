@@ -39,9 +39,11 @@ export const documentMembers = pgTable(
         documentId: uuid("document_id")
             .notNull()
             .references(() => documents.id, { onDelete: "cascade" }),
+
         userId: uuid("user_id")
             .notNull()
             .references(() => users.id, { onDelete: "cascade" }),
+            
         role: memberRole("role").notNull().default("viewer"),
     },
     (table) => [

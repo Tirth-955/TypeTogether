@@ -5,6 +5,7 @@ import helmet from "helmet";
 import cookieParser from "cookie-parser";
 
 import { env } from "./config/env.js";
+import { pool } from "./db/client.js";
 import { authRouter } from "./routes/auth.routes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 
@@ -17,11 +18,27 @@ app.use(cookieParser());
 
 app.use("/api/auth", authRouter);
 
-app.get("/health", (_req, res) => {
-    res.status(200).json({
-        status: "ok",
-        message: "TypeTogether API is running",
+app.get("/health", async (_req, res) => {
+    let database: "connected" | "unavailable" = "connected";
+
+    try {
+        await pool.query("SELECT 1");
+    } catch {
+        database = "unavailable";
+    }
+
+    res.status(database === "connected" ? 200 : 503).json({
+        status: database === "connected" ? "ok" : "degraded",
+        database,
         instance: os.hostname(),
+    });
+});
+
+app.use((req, res) => {
+    res.status(404).json({
+        status: "error",
+        message: "Route not found",
+        path: req.path,
     });
 });
 
