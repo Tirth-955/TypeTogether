@@ -32,7 +32,7 @@ export const documents = pgTable("documents", {
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-/* Sharing and permissions: one membership row per user per document. */
+// Sharing and permissions: one membership row per user per document.
 export const documentMembers = pgTable(
     "document_members",
     {
