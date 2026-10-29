@@ -4,7 +4,6 @@ import { z } from "zod";
 import { env } from "../config/env.js";
 import { ApiError } from "../utils/ApiError.js";
 
-/** Centralized error handler — expanded with tests in Task 6. */
 export const errorHandler = (
     err: unknown,
     _req: Request,

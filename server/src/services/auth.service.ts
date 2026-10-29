@@ -23,6 +23,5 @@ export const createUser = async (email: string, password: string) => {
     return user;
 };
 
-export const verifyPassword = (password: string, passwordHash: string) => {
+export const verifyPassword = (password: string, passwordHash: string) =>
     bcrypt.compare(password, passwordHash);
-};

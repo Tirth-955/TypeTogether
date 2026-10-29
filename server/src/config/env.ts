@@ -21,14 +21,16 @@ const envSchema = z.object({
     JWT_SECRET: z.string().min(1).default("dev-only-change-me"),
 });
 
-const parsed = envSchema.safeParse(process.env);
+const loadEnv = () => {
+    try {
+        return envSchema.parse(process.env);
+    } catch (error) {
+        console.error("Invalid environment configuration:", z.treeifyError(error as z.ZodError));
+        process.exit(1);
+    }
+};
 
-if (!parsed.success) {
-    console.error("Invalid environment configuration:", z.treeifyError(parsed.error));
-    process.exit(1);
-}
-
-export const env = parsed.data;
+export const env = loadEnv();
 
 if (env.NODE_ENV === "production" && env.JWT_SECRET === "dev-only-change-me") {
     console.error("JWT_SECRET must be changed from its development default in production");

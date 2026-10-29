@@ -22,6 +22,7 @@ export const signup = async (req: Request, res: Response) => {
     const { email, password } = signupSchema.parse(req.body);
 
     const existing = await authService.findUserByEmail(email);
+    
     if (existing) {
         throw ApiError.conflict("An account with this email already exists");
     }
