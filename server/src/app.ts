@@ -6,7 +6,7 @@ import cookieParser from "cookie-parser";
 
 import { env } from "./config/env.js";
 import { pool } from "./db/client.js";
-import { authRouter } from "./routes/auth.routes.js";
+import { apiRouter } from "./routes/index.routes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 
 const app = express();
@@ -16,7 +16,7 @@ app.use(cors({ origin: env.CORS_ORIGIN, credentials: true }));
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
 
-app.use("/api/auth", authRouter);
+app.use("/api", apiRouter);
 
 app.get("/health", async (_req, res) => {
     let database: "connected" | "unavailable" = "connected";

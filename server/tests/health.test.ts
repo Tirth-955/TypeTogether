@@ -16,12 +16,12 @@ describe("GET /health", () => {
 
 describe("unknown routes", () => {
     it("returns a consistent JSON 404", async () => {
-        const res = await request.get("/api/does-not-exist");
+        const res = await request.get("/api/v1/does-not-exist");
 
         expect(res.status).toBe(404);
         expect(res.body.status).toBe("error");
         expect(res.body.message).toBe("Route not found");
-        expect(res.body.path).toBe("/api/does-not-exist");
+        expect(res.body.path).toBe("/api/v1/does-not-exist");
     });
 });
 

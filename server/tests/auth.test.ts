@@ -11,10 +11,10 @@ const findAuthCookie = (res: { headers: { [k: string]: unknown } }): string | un
         cookie.startsWith("tt_auth=")
     );
 
-describe("POST /api/auth/signup", () => {
+describe("POST /api/v1/auth/signup", () => {
     it("creates an account and sets an httpOnly auth cookie", async () => {
         const res = await request
-            .post("/api/auth/signup")
+            .post("/api/v1/auth/signup")
             .send({ email: EMAIL, password: PASSWORD });
 
         expect(res.status).toBe(201);
@@ -29,10 +29,10 @@ describe("POST /api/auth/signup", () => {
     });
 
     it("rejects a duplicate email with 409", async () => {
-        await request.post("/api/auth/signup").send({ email: EMAIL, password: PASSWORD });
+        await request.post("/api/v1/auth/signup").send({ email: EMAIL, password: PASSWORD });
 
         const res = await request
-            .post("/api/auth/signup")
+            .post("/api/v1/auth/signup")
             .send({ email: EMAIL, password: PASSWORD });
 
         expect(res.status).toBe(409);
@@ -41,10 +41,10 @@ describe("POST /api/auth/signup", () => {
     });
 
     it("rejects a duplicate email regardless of case", async () => {
-        await request.post("/api/auth/signup").send({ email: EMAIL, password: PASSWORD });
+        await request.post("/api/v1/auth/signup").send({ email: EMAIL, password: PASSWORD });
 
         const res = await request
-            .post("/api/auth/signup")
+            .post("/api/v1/auth/signup")
             .send({ email: "ALICE@EXAMPLE.COM", password: PASSWORD });
 
         expect(res.status).toBe(409);
@@ -52,7 +52,7 @@ describe("POST /api/auth/signup", () => {
 
     it("returns 400 with field issues for an invalid email", async () => {
         const res = await request
-            .post("/api/auth/signup")
+            .post("/api/v1/auth/signup")
             .send({ email: "not-an-email", password: PASSWORD });
 
         expect(res.status).toBe(400);
@@ -64,7 +64,7 @@ describe("POST /api/auth/signup", () => {
 
     it("returns 400 for a password shorter than 8 characters", async () => {
         const res = await request
-            .post("/api/auth/signup")
+            .post("/api/v1/auth/signup")
             .send({ email: EMAIL, password: "short" });
 
         expect(res.status).toBe(400);
@@ -74,22 +74,22 @@ describe("POST /api/auth/signup", () => {
     });
 
     it("returns 400 when the body is missing", async () => {
-        const res = await request.post("/api/auth/signup").send();
+        const res = await request.post("/api/v1/auth/signup").send();
 
         expect(res.status).toBe(400);
         expect(res.body.status).toBe("error");
     });
 });
 
-describe("POST /api/auth/login", () => {
+describe("POST /api/v1/auth/login", () => {
     beforeEach(async () => {
         await truncateAll();
-        await request.post("/api/auth/signup").send({ email: EMAIL, password: PASSWORD });
+        await request.post("/api/v1/auth/signup").send({ email: EMAIL, password: PASSWORD });
     });
 
     it("logs in with valid credentials and sets the auth cookie", async () => {
         const res = await request
-            .post("/api/auth/login")
+            .post("/api/v1/auth/login")
             .send({ email: EMAIL, password: PASSWORD });
 
         expect(res.status).toBe(200);
@@ -100,7 +100,7 @@ describe("POST /api/auth/login", () => {
 
     it("rejects a wrong password with 401", async () => {
         const res = await request
-            .post("/api/auth/login")
+            .post("/api/v1/auth/login")
             .send({ email: EMAIL, password: "wrongpassword" });
 
         expect(res.status).toBe(401);
@@ -109,7 +109,7 @@ describe("POST /api/auth/login", () => {
 
     it("rejects an unknown email with 401 and does not leak account existence", async () => {
         const res = await request
-            .post("/api/auth/login")
+            .post("/api/v1/auth/login")
             .send({ email: "nobody@example.com", password: PASSWORD });
 
         expect(res.status).toBe(401);
@@ -118,23 +118,23 @@ describe("POST /api/auth/login", () => {
 
     it("accepts the email in a different case", async () => {
         const res = await request
-            .post("/api/auth/login")
+            .post("/api/v1/auth/login")
             .send({ email: "ALICE@EXAMPLE.COM", password: PASSWORD });
 
         expect(res.status).toBe(200);
     });
 });
 
-describe("GET /api/auth/me", () => {
+describe("GET /api/v1/auth/me", () => {
     it("rejects an unauthenticated request with 401", async () => {
-        const res = await request.get("/api/auth/me");
+        const res = await request.get("/api/v1/auth/me");
 
         expect(res.status).toBe(401);
         expect(res.body.status).toBe("error");
     });
 
     it("rejects a tampered cookie with 401", async () => {
-        const res = await request.get("/api/auth/me").set("Cookie", "tt_auth=not.a.valid.jwt");
+        const res = await request.get("/api/v1/auth/me").set("Cookie", "tt_auth=not.a.valid.jwt");
 
         expect(res.status).toBe(401);
         expect(res.body.message).toBe("Invalid or expired session");
@@ -142,10 +142,10 @@ describe("GET /api/auth/me", () => {
 
     it("returns the current user for a valid session", async () => {
         const signup = await agent
-            .post("/api/auth/signup")
+            .post("/api/v1/auth/signup")
             .send({ email: EMAIL, password: PASSWORD });
 
-        const res = await agent.get("/api/auth/me");
+        const res = await agent.get("/api/v1/auth/me");
 
         expect(res.status).toBe(200);
         expect(res.body.status).toBe("ok");
@@ -154,14 +154,14 @@ describe("GET /api/auth/me", () => {
     });
 });
 
-describe("POST /api/auth/logout", () => {
+describe("POST /api/v1/auth/logout", () => {
     it("clears the session so /me becomes unauthorized", async () => {
-        await agent.post("/api/auth/signup").send({ email: EMAIL, password: PASSWORD });
+        await agent.post("/api/v1/auth/signup").send({ email: EMAIL, password: PASSWORD });
 
-        const logout = await agent.post("/api/auth/logout");
+        const logout = await agent.post("/api/v1/auth/logout");
         expect(logout.status).toBe(200);
 
-        const res = await agent.get("/api/auth/me");
+        const res = await agent.get("/api/v1/auth/me");
         expect(res.status).toBe(401);
     });
 });

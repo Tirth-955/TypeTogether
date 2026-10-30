@@ -7,9 +7,6 @@ import type { AuthUser } from "../types/auth.js";
 export const TOKEN_TTL_SECONDS = 60 * 60 * 24 * 7;
 export const TOKEN_TTL_MS = TOKEN_TTL_SECONDS * 1000;
 
-// HTTP-only cookie holding the JWT sent to / received by Socket.IO
-export const AUTH_COOKIE_NAME = "tt_auth";
-
 export const signAuthToken = (user: { id: string; email: string }): string =>
     jwt.sign({ email: user.email }, env.JWT_SECRET, {
         subject: user.id,
