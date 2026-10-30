@@ -8,6 +8,13 @@
       "when": 1793366433131,
       "tag": "0000_brief_salo",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793376508525,
+      "tag": "0001_fat_scream",
+      "breakpoints": true
     }
   ]
 }

@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { index, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 
 export const users = pgTable(
     "users",
@@ -11,5 +11,29 @@ export const users = pgTable(
     (table) => [uniqueIndex("users_email_unique_idx").on(table.email)]
 );
 
+export const documents = pgTable(
+    "documents",
+    {
+        id: text("id").primaryKey(),
+        title: text("title").notNull(),
+        docType: text("doc_type").notNull(),
+        language: text("language"),
+        content: text("content").notNull().default(""),
+
+        creatorId: uuid("creator_id").references(() => users.id, { onDelete: "set null" }),
+
+        expiresAt: timestamp("expires_at", { withTimezone: true }),
+
+        createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+        updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    },
+    (table) => [
+        index("documents_creator_id_idx").on(table.creatorId),
+        index("documents_expires_at_idx").on(table.expiresAt),
+    ]
+);
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
+export type Document = typeof documents.$inferSelect;
+export type NewDocument = typeof documents.$inferInsert;
