@@ -6,3 +6,4 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 export const documentsRouter = Router();
 
 documentsRouter.post("/", asyncHandler(documentController.createDocument));
+documentsRouter.get("/:id", asyncHandler(documentController.getDocument));

@@ -19,6 +19,8 @@ const envSchema = z.object({
     DATABASE_URL_DIRECT: z.string().min(1).default(""),
 
     JWT_SECRET: z.string().min(1).default("dev-only-change-me"),
+
+    LINK_RETENTION_HOURS: z.coerce.number().int().positive().max(168).default(24),
 });
 
 const loadEnv = () => {

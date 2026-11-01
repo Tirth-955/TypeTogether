@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import { z } from "zod";
 
 import { DEFAULT_LANGUAGE, docTypeSchema, languageSchema } from "../constants/document.js";
+import { ApiError } from "../utils/ApiError.js";
 import * as documentService from "../services/document.service.js";
 
 const createDocumentSchema = z
@@ -37,6 +38,28 @@ export const createDocument = async (req: Request, res: Response) => {
             docType: document.docType,
             language: document.language,
             shareUrl: `/d/${document.id}`,
+        },
+    });
+};
+
+export const getDocument = async (req: Request, res: Response) => {
+    const id = Array.isArray(req.params.id) ? (req.params.id[0] ?? "") : req.params.id;
+
+    const document = await documentService.getDocumentById(id);
+
+    if (!document) throw ApiError.notFound("Document not found");
+
+    res.json({
+        status: "ok",
+        document: {
+            id: document.id,
+            title: document.title,
+            docType: document.docType,
+            language: document.language,
+            content: document.content,
+            saved: document.expiresAt === null,
+            createdAt: document.createdAt.toISOString(),
+            updatedAt: document.updatedAt.toISOString(),
         },
     });
 };

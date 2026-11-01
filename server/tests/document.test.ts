@@ -8,6 +8,16 @@ const truncateDocuments = async () => {
     await db.execute(sql`TRUNCATE TABLE documents CASCADE`);
 };
 
+const createDoc = async (body: Record<string, unknown>) => {
+    const res = await request.post("/api/v1/documents").send(body);
+
+    if (res.status !== 201) {
+        throw new Error(`createDoc failed: ${res.status} ${JSON.stringify(res.body)}`);
+    }
+
+    return res.body.document;
+};
+
 describe("POST /api/v1/documents", () => {
     afterEach(truncateDocuments);
 
@@ -90,6 +100,49 @@ describe("POST /api/v1/documents", () => {
             .send({ title: "script", docType: "code", language: "klingon" });
 
         expect(res.status).toBe(400);
+    });
+});
+
+describe("GET /api/v1/documents/:id", () => {
+    afterEach(truncateDocuments);
+
+    it("publicly fetches a document by its ID without auth", async () => {
+        const created = await createDoc({ title: "Notes", docType: "markdown" });
+
+        const res = await request.get(`/api/v1/documents/${created.id}`);
+
+        expect(res.status).toBe(200);
+        expect(res.body.status).toBe("ok");
+        expect(res.body.document.id).toBe(created.id);
+        expect(res.body.document.title).toBe("Notes");
+        expect(res.body.document.docType).toBe("markdown");
+        expect(res.body.document.content).toBe("");
+        expect(res.body.document.saved).toBe(false);
+        expect(res.body.document.createdAt).toEqual(expect.any(String));
+        expect(res.body.document.updatedAt).toEqual(expect.any(String));
+    });
+
+    it("returns 404 for an unknown document ID", async () => {
+        const res = await request.get("/api/v1/documents/C9B7rxAc21niwDZY3kTt2");
+
+        expect(res.status).toBe(404);
+        expect(res.body.status).toBe("error");
+        expect(res.body.message).toBe("Document not found");
+    });
+
+    it("returns 404 AFTER the retention deadline has passed, even unsaved", async () => {
+        // Simulate a document whose 24-hour window passed directly in the DB.
+        const expiredId = "C9B7rxAc21niwDZY3kTt2";
+        const { documents } = await import("../src/db/schema.js");
+        await db.insert(documents).values({
+            id: expiredId,
+            title: "Expired",
+            docType: "text",
+            expiresAt: new Date(Date.now() - 1_000),
+        });
+
+        const res = await request.get(`/api/v1/documents/${expiredId}`);
+        expect(res.status).toBe(404);
     });
 });
 

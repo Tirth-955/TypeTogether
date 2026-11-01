@@ -7,10 +7,29 @@ import * as schema from "./schema.js";
 export const pool = new Pool({
     connectionString: env.DATABASE_URL,
     max: 10,
-    idleTimeoutMillis: 30_000,
-    connectionTimeoutMillis: 10_000,
+    idleTimeoutMillis: 10_000,
+    connectionTimeoutMillis: 15_000,
+    keepAlive: true,
+    keepAliveInitialDelayMillis: 10_000,
 });
 
 export const db = drizzle(pool, { schema });
 
 export type Database = typeof db;
+
+const TRANSIENT_CONNECTION_ERROR =
+    /Connection terminated|Connection terminated unexpectedly|ECONNRESET|EPIPE|ETIMEDOUT/i;
+
+const isTransient = (error: unknown): boolean =>
+    [error, (error as { cause?: unknown }).cause].some(
+        (e) => e instanceof Error && TRANSIENT_CONNECTION_ERROR.test(e.message)
+    );
+
+export const withRetry = async <T>(fn: () => Promise<T>): Promise<T> => {
+    try {
+        return await fn();
+    } catch (error) {
+        if (!isTransient(error)) throw error;
+        return fn();
+    }
+};
