@@ -24,9 +24,12 @@ export const createDocument = async ({ title, docType, language }: CreateDocumen
             .onConflictDoNothing()
             .returning();
 
-        if (inserted) return inserted;
+        if (inserted) {
+            return inserted;
+        }
 
         const [existing] = await db.select().from(documents).where(eq(documents.id, id)).limit(1);
+
         return existing;
     });
 };
@@ -83,12 +86,48 @@ export const listDocumentsByCreator = async (userId: string): Promise<DocumentLi
         return rows.map((row) => ({ ...row, docType: row.docType as DocType }));
     });
 
+export type DeleteDocumentInput = {
+    id: string;
+    userId: string;
+};
+
+export type DeleteDocumentResult = "notFound" | "forbidden" | "deleted";
+
+export const deleteDocument = async ({
+    id,
+    userId,
+}: DeleteDocumentInput): Promise<DeleteDocumentResult> =>
+    withRetry(async () => {
+        const [document] = await db
+            .select({ creatorId: documents.creatorId })
+            .from(documents)
+            .where(eq(documents.id, id))
+            .limit(1);
+
+        if (!document) {
+            return "notFound";
+        }
+
+        if (document.creatorId !== userId) {
+            return "forbidden";
+        }
+
+        await db.delete(documents).where(eq(documents.id, id));
+
+        return "deleted";
+    });
+
 export const getDocumentById = async (id: string) =>
     withRetry(async () => {
         const [document] = await db.select().from(documents).where(eq(documents.id, id)).limit(1);
 
-        if (!document) return null;
-        if (document.expiresAt && document.expiresAt.getTime() <= Date.now()) return null;
+        if (!document) {
+            return null;
+        }
+
+        if (document.expiresAt && document.expiresAt.getTime() <= Date.now()) {
+            return null;
+        }
 
         return document;
     });

@@ -9,3 +9,4 @@ export const documentsRouter = Router();
 documentsRouter.post("/", asyncHandler(documentController.createDocument));
 documentsRouter.get("/:id", asyncHandler(documentController.getDocument));
 documentsRouter.put("/:id", authGuard, asyncHandler(documentController.saveDocument));
+documentsRouter.delete("/:id", authGuard, asyncHandler(documentController.deleteDocument));

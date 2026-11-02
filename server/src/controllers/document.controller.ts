@@ -63,7 +63,7 @@ export const saveDocument = async (req: Request, res: Response) => {
     if (!document) {
         throw ApiError.notFound("Document not found");
     }
-    
+
     res.json({
         status: "ok",
         document: {
@@ -76,6 +76,28 @@ export const saveDocument = async (req: Request, res: Response) => {
             updatedAt: document.updatedAt.toISOString(),
         },
     });
+};
+
+export const deleteDocument = async (req: Request, res: Response) => {
+    const user = req.user;
+
+    if (!user) {
+        throw ApiError.unauthorized();
+    }
+
+    const id = Array.isArray(req.params.id) ? (req.params.id[0] ?? "") : req.params.id;
+
+    const result = await documentService.deleteDocument({ id, userId: user.id });
+
+    if (result === "notFound") {
+        throw ApiError.notFound("Document not found");
+    }
+
+    if (result === "forbidden") {
+        throw ApiError.forbidden();
+    }
+    
+    res.json({ status: "ok" });
 };
 
 export const getDocument = async (req: Request, res: Response) => {

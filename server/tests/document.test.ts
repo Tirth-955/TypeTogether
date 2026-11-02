@@ -1,6 +1,8 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import supertest from "supertest";
 import { eq, sql } from "drizzle-orm";
 
+import app from "../src/app.js";
 import { db } from "../src/db/client.js";
 import { agent, request } from "./helpers.js";
 
@@ -288,6 +290,70 @@ describe("GET /api/v1/users/me/documents", () => {
         expect(res.status).toBe(200);
         expect(res.body.documents).toHaveLength(1);
         expect(res.body.documents[0].id).toBe(saved.id);
+    });
+});
+
+describe("DELETE /api/v1/documents/:id", () => {
+    const EMAIL = "saver@example.com";
+    const PASSWORD = "supersecret123";
+
+    beforeAll(async () => {
+        const signup = await agent.post("/api/v1/auth/signup").send({ email: EMAIL, password: PASSWORD });
+
+        if (signup.status === 409) {
+            await agent.post("/api/v1/auth/login").send({ email: EMAIL, password: PASSWORD });
+        }
+    });
+
+    afterEach(truncateDocuments);
+
+    it("rejects an anonymous delete with 401", async () => {
+        const created = await createDoc({ title: "Notes", docType: "text" });
+
+        const res = await request.delete(`/api/v1/documents/${created.id}`);
+
+        expect(res.status).toBe(401);
+        expect(res.body.status).toBe("error");
+    });
+
+    it("rejects deletion of an unsaved (creator-less) document with 403", async () => {
+        const created = await createDoc({ title: "Notes", docType: "text" });
+
+        const res = await agent.delete(`/api/v1/documents/${created.id}`);
+
+        expect(res.status).toBe(403);
+        expect(res.body.status).toBe("error");
+    });
+
+    it("rejects deletion by a logged-in user who is not the creator with 403", async () => {
+        const ownerAgent = supertest.agent(app);
+        const ownerSignup = await ownerAgent
+            .post("/api/v1/auth/signup")
+            .send({ email: "owner@example.com", password: PASSWORD });
+
+        if (ownerSignup.status === 409) {
+            await ownerAgent.post("/api/v1/auth/login").send({ email: "owner@example.com", password: PASSWORD });
+        }
+
+        const created = await createDoc({ title: "Notes", docType: "text" });
+        await ownerAgent.put(`/api/v1/documents/${created.id}`).send({ content: "" });
+
+        const res = await agent.delete(`/api/v1/documents/${created.id}`);
+
+        expect(res.status).toBe(403);
+    });
+
+    it("deletes the creator's own document", async () => {
+        const created = await createDoc({ title: "Notes", docType: "text" });
+        await agent.put(`/api/v1/documents/${created.id}`).send({ content: "" });
+
+        const res = await agent.delete(`/api/v1/documents/${created.id}`);
+
+        expect(res.status).toBe(200);
+        expect(res.body.status).toBe("ok");
+
+        const fetched = await request.get(`/api/v1/documents/${created.id}`);
+        expect(fetched.status).toBe(404);
     });
 });
 
