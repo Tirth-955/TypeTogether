@@ -1,5 +1,5 @@
 import { nanoid } from "nanoid";
-import { eq, sql } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 
 import { env } from "../config/env.js";
 import { db, withRetry } from "../db/client.js";
@@ -53,6 +53,34 @@ export const saveDocument = async ({ id, content, title, userId }: SaveDocumentI
             .returning();
 
         return updated ?? null;
+    });
+
+export type DocumentListItem = {
+    id: string;
+    title: string;
+    docType: DocType;
+    language: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+};
+
+export const listDocumentsByCreator = async (userId: string): Promise<DocumentListItem[]> =>
+    withRetry(async () => {
+        const rows = await db
+            .select({
+                id: documents.id,
+                title: documents.title,
+                docType: documents.docType,
+                language: documents.language,
+                createdAt: documents.createdAt,
+                updatedAt: documents.updatedAt,
+            })
+            .from(documents)
+            .where(eq(documents.creatorId, userId))
+            .orderBy(desc(documents.updatedAt))
+            .limit(100);
+
+        return rows.map((row) => ({ ...row, docType: row.docType as DocType }));
     });
 
 export const getDocumentById = async (id: string) =>

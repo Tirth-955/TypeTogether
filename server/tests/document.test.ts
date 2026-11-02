@@ -234,6 +234,63 @@ describe("PUT /api/v1/documents/:id", () => {
     });
 });
 
+describe("GET /api/v1/users/me/documents", () => {
+    const EMAIL = "saver@example.com";
+    const PASSWORD = "supersecret123";
+
+    beforeAll(async () => {
+        const signup = await agent.post("/api/v1/auth/signup").send({ email: EMAIL, password: PASSWORD });
+
+        if (signup.status === 409) {
+            await agent.post("/api/v1/auth/login").send({ email: EMAIL, password: PASSWORD });
+        }
+    });
+
+    afterEach(truncateDocuments);
+
+    it("rejects an anonymous request with 401", async () => {
+        const res = await request.get("/api/v1/users/me/documents");
+
+        expect(res.status).toBe(401);
+        expect(res.body.status).toBe("error");
+    });
+
+    it("lists the user's saved documents newest first", async () => {
+        const first = await createDoc({ title: "First", docType: "text" });
+        const second = await createDoc({ title: "Second", docType: "markdown" });
+
+        await agent.put(`/api/v1/documents/${first.id}`).send({ content: "" });
+        // Guarantee unambiguous updatedAt ordering at millisecond precision.
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        await agent.put(`/api/v1/documents/${second.id}`).send({ content: "" });
+
+        const res = await agent.get("/api/v1/users/me/documents");
+
+        expect(res.status).toBe(200);
+        expect(res.body.status).toBe("ok");
+
+        expect(res.body.documents).toHaveLength(2);
+        expect(res.body.documents[0].id).toBe(second.id);
+        expect(res.body.documents[1].id).toBe(first.id);
+        expect(res.body.documents[0]).toMatchObject({ title: "Second", docType: "markdown" });
+        // List projection stays lean — no document content.
+        expect(res.body.documents[0]).not.toHaveProperty("content");
+    });
+
+    it("does not list documents that were never saved", async () => {
+        const saved = await createDoc({ title: "Saved", docType: "text" });
+        await createDoc({ title: "Unsaved", docType: "text" });
+
+        await agent.put(`/api/v1/documents/${saved.id}`).send({ content: "" });
+
+        const res = await agent.get("/api/v1/users/me/documents");
+
+        expect(res.status).toBe(200);
+        expect(res.body.documents).toHaveLength(1);
+        expect(res.body.documents[0].id).toBe(saved.id);
+    });
+});
+
 afterAll(async () => {
     await db.$client.end();
 });
