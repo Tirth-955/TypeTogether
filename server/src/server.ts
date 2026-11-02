@@ -1,6 +1,9 @@
+import http from "node:http";
+
 import app from "./app.js";
 import { env } from "./config/env.js";
 import { pool } from "./db/client.js";
+import { initSocket } from "./realtime/init.js";
 
 const PORT = env.PORT;
 
@@ -12,6 +15,10 @@ try {
     process.exit(1);
 }
 
-app.listen(PORT, () => {
+// Socket.IO shares the Express HTTP server, one port for REST and real-time.
+const httpServer = http.createServer(app);
+initSocket(httpServer);
+
+httpServer.listen(PORT, () => {
     console.log(`TypeTogether server listening on http://localhost:${PORT} (${env.NODE_ENV})`);
 });
