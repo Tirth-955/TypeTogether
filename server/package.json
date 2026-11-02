@@ -30,6 +30,8 @@
     "nanoid": "^6.0.2",
     "pg": "^8.23.1",
     "socket.io": "^4.8.4",
+    "y-protocols": "^1.0.7",
+    "yjs": "^13.6.33",
     "zod": "^4.1.13"
   },
   "devDependencies": {
