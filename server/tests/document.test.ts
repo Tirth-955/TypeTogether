@@ -1,8 +1,8 @@
-import { afterAll, afterEach, describe, expect, it } from "vitest";
-import { sql } from "drizzle-orm";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { eq, sql } from "drizzle-orm";
 
 import { db } from "../src/db/client.js";
-import { request } from "./helpers.js";
+import { agent, request } from "./helpers.js";
 
 const truncateDocuments = async () => {
     await db.execute(sql`TRUNCATE TABLE documents CASCADE`);
@@ -143,6 +143,94 @@ describe("GET /api/v1/documents/:id", () => {
 
         const res = await request.get(`/api/v1/documents/${expiredId}`);
         expect(res.status).toBe(404);
+    });
+});
+
+describe("PUT /api/v1/documents/:id", () => {
+    const EMAIL = "saver@example.com";
+    const PASSWORD = "supersecret123";
+    let saverId = "";
+
+    beforeAll(async () => {
+        const signup = await agent.post("/api/v1/auth/signup").send({ email: EMAIL, password: PASSWORD });
+
+        const userRes =
+            signup.status === 409
+                ? await agent.post("/api/v1/auth/login").send({ email: EMAIL, password: PASSWORD })
+                : signup;
+
+        // The agent keeps the HTTP-only cookie for later PUT calls.
+        saverId = userRes.body.user.id;
+    });
+
+    afterEach(truncateDocuments);
+
+    it("rejects an anonymous save with 401", async () => {
+        const created = await createDoc({ title: "Notes", docType: "text" });
+
+        const res = await request.put(`/api/v1/documents/${created.id}`).send({ content: "hello" });
+
+        expect(res.status).toBe(401);
+        expect(res.body.status).toBe("error");
+    });
+
+    it("saves content and title, stamps the saver as creator, and makes the document permanent", async () => {
+        const created = await createDoc({ title: "Notes", docType: "text" });
+
+        const res = await agent
+            .put(`/api/v1/documents/${created.id}`)
+            .send({ content: "# Hello", title: "Saved notes" });
+
+        expect(res.status).toBe(200);
+        expect(res.body.status).toBe("ok");
+        expect(res.body.document.title).toBe("Saved notes");
+        expect(res.body.document.saved).toBe(true);
+
+        const { documents } = await import("../src/db/schema.js");
+        const [row] = await db.select().from(documents).where(eq(documents.id, created.id));
+
+        expect(row.content).toBe("# Hello");
+        expect(row.expiresAt).toBeNull();
+        expect(row.creatorId).toBe(saverId);
+    });
+
+    it("keeps a previously saved document permanent on a later save", async () => {
+        const created = await createDoc({ title: "Notes", docType: "text" });
+
+        await agent.put(`/api/v1/documents/${created.id}`).send({ content: "first" });
+        const res = await agent.put(`/api/v1/documents/${created.id}`).send({ content: "second" });
+
+        expect(res.status).toBe(200);
+
+        const { documents } = await import("../src/db/schema.js");
+        const [row] = await db.select().from(documents).where(eq(documents.id, created.id));
+
+        expect(row.content).toBe("second");
+        expect(row.expiresAt).toBeNull();
+        // First save wins the creator stamp even on later saves.
+        expect(row.creatorId).toBe(saverId);
+    });
+
+    it("returns 404 for an unknown document ID", async () => {
+        const res = await agent
+            .put("/api/v1/documents/C9B7rxAc21niwDZY3kTt2")
+            .send({ content: "x" });
+
+        expect(res.status).toBe(404);
+        expect(res.body.message).toBe("Document not found");
+    });
+
+    it("rejects a title longer than 120 characters with 400", async () => {
+        const created = await createDoc({ title: "Notes", docType: "text" });
+
+        const res = await agent
+            .put(`/api/v1/documents/${created.id}`)
+            .send({ content: "x", title: "x".repeat(121) });
+
+        expect(res.status).toBe(400);
+        expect(res.body.issues).toEqual(
+            expect.arrayContaining([expect.objectContaining({ path: "title" })])
+        );
     });
 });
 

@@ -1,5 +1,5 @@
 import { nanoid } from "nanoid";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 import { env } from "../config/env.js";
 import { db, withRetry } from "../db/client.js";
@@ -30,6 +30,30 @@ export const createDocument = async ({ title, docType, language }: CreateDocumen
         return existing;
     });
 };
+
+export type SaveDocumentInput = {
+    id: string;
+    content: string;
+    title: string | undefined;
+    userId: string;
+};
+
+export const saveDocument = async ({ id, content, title, userId }: SaveDocumentInput) =>
+    withRetry(async () => {
+        const [updated] = await db
+            .update(documents)
+            .set({
+                ...(title !== undefined ? { title } : {}),
+                content,
+                creatorId: sql`COALESCE(${documents.creatorId}, ${userId}::uuid)`,
+                expiresAt: null,
+                updatedAt: new Date(),
+            })
+            .where(eq(documents.id, id))
+            .returning();
+
+        return updated ?? null;
+    });
 
 export const getDocumentById = async (id: string) =>
     withRetry(async () => {
