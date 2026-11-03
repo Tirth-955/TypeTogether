@@ -24,3 +24,8 @@ export const syncStep2PayloadSchema = z.object({
     docId: documentIdSchema,
     diff: binaryPayloadSchema,
 });
+
+export const documentUpdatePayloadSchema = z.object({
+    docId: documentIdSchema,
+    update: binaryPayloadSchema,
+});

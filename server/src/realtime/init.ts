@@ -10,6 +10,7 @@ import type { AuthUser } from "../types/auth.js";
 import * as registry from "./registry.js";
 import {
     documentJoinPayloadSchema,
+    documentUpdatePayloadSchema,
     syncStep1PayloadSchema,
     syncStep2PayloadSchema,
 } from "./schemas.js";
@@ -18,12 +19,14 @@ export interface ClientToServerEvents {
     "document:join": (payload: { docId: string }, ack: (response: DocumentJoinAck) => void) => void;
     "document:sync_step1": (payload: { docId: string; stateVector: Uint8Array }) => void;
     "document:sync_step2": (payload: { docId: string; diff: Uint8Array }) => void;
+    "document:update": (payload: { docId: string; update: Uint8Array }) => void;
 }
 
 export interface ServerToClientEvents {
     "session:init": (payload: { authenticated: boolean }) => void;
     "document:sync_step1": (payload: { docId: string; stateVector: Uint8Array }) => void;
     "document:sync_step2": (payload: { docId: string; diff: Uint8Array }) => void;
+    "document:update": (payload: { docId: string; update: Uint8Array }) => void;
     "document:error": (payload: { code: string; message: string }) => void;
 }
 
@@ -217,6 +220,34 @@ export const initSocket = (httpServer: HttpServer): TypedServer => {
             }
 
             socket.to(documentRoom(docId)).emit("document:sync_step2", { docId, diff });
+        });
+
+        socket.on("document:update", (payload) => {
+            const parsed = documentUpdatePayloadSchema.safeParse(payload);
+
+            if (!parsed.success) {
+                emitDocumentError(socket, "badRequest", "Malformed update payload");
+                return;
+            }
+
+            const { docId, update } = parsed.data;
+
+            const session = registry.getJoinedSession(docId, socket.id);
+
+            if (!session) {
+                emitDocumentError(socket, "notJoined", "Socket has not joined this document");
+                return;
+            }
+
+            try {
+                Y.applyUpdate(session.ydoc, update);
+            } catch (error) {
+                console.warn(`socket ${socket.id} sent an invalid update for ${docId}:`, error);
+                emitDocumentError(socket, "malformedUpdate", "Invalid update payload");
+                return;
+            }
+
+            socket.to(documentRoom(docId)).emit("document:update", { docId, update });
         });
 
         socket.on("disconnect", (reason) => {
