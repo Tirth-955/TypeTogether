@@ -15,11 +15,20 @@ export type DocumentSession = {
     awareness: Awareness;
     sockets: Set<string>;
     gcTimer: NodeJS.Timeout | null;
+    dirty: boolean;
 };
 
 const sessions = new Map<string, DocumentSession>();
 
 const loading = new Map<string, Promise<DocumentSession | null>>();
+
+let onLastSocketLeave: ((session: DocumentSession) => void) | null = null;
+
+export const setOnLastSocketLeave = (fn: ((session: DocumentSession) => void) | null): void => {
+    onLastSocketLeave = fn;
+};
+
+export const getAllSessions = (): IterableIterator<DocumentSession> => sessions.values();
 
 export const getSession = (docId: string): DocumentSession | undefined => sessions.get(docId);
 
@@ -51,7 +60,12 @@ const loadSession = async (docId: string): Promise<DocumentSession | null> => {
         awareness: new Awareness(ydoc),
         sockets: new Set(),
         gcTimer: null,
+        dirty: false,
     };
+
+    ydoc.on("update", () => {
+        session.dirty = true;
+    });
 
     sessions.set(docId, session);
 
@@ -106,6 +120,10 @@ export const removeSocket = (docId: string, socketId: string): number => {
 
     if (session.sockets.size > 0) {
         return session.sockets.size;
+    }
+
+    if (onLastSocketLeave) {
+        onLastSocketLeave(session);
     }
 
     session.gcTimer = setTimeout(() => discardSession(docId), GC_GRACE_MS);

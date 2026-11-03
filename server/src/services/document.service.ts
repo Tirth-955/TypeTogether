@@ -1,5 +1,5 @@
 import { nanoid } from "nanoid";
-import { desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, isNotNull, sql } from "drizzle-orm";
 
 import { env } from "../config/env.js";
 import { db, withRetry } from "../db/client.js";
@@ -130,4 +130,23 @@ export const getDocumentById = async (id: string) =>
         }
 
         return document;
+    });
+
+export const checkpointDocument = async (
+    id: string,
+    content: string,
+    expiresAt: Date
+): Promise<boolean> =>
+    withRetry(async () => {
+        const rows = await db
+            .update(documents)
+            .set({
+                content,
+                expiresAt,
+                updatedAt: new Date(),
+            })
+            .where(and(eq(documents.id, id), isNotNull(documents.expiresAt)))
+            .returning({ id: documents.id });
+
+        return rows.length > 0;
     });

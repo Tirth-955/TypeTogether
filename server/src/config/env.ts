@@ -21,6 +21,8 @@ const envSchema = z.object({
     JWT_SECRET: z.string().min(1).default("dev-only-change-me"),
 
     LINK_RETENTION_HOURS: z.coerce.number().int().positive().max(168).default(24),
+
+    RETENTION_CHECKPOINT_SECONDS: z.coerce.number().positive().max(86_400).default(30),
 });
 
 const loadEnv = () => {
