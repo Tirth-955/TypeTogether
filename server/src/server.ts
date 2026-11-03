@@ -3,7 +3,7 @@ import http from "node:http";
 import app from "./app.js";
 import { env } from "./config/env.js";
 import { pool } from "./db/client.js";
-import { initSocket } from "./realtime/init.js";
+import { initSocket } from "./realtime/socketServer.js";
 
 const PORT = env.PORT;
 

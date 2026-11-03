@@ -5,7 +5,7 @@ import { io as ioClient } from "socket.io-client";
 
 import app from "../src/app.js";
 import { db } from "../src/db/client.js";
-import { initSocket, type TypedServer } from "../src/realtime/init.js";
+import { initSocket, type TypedServer } from "../src/realtime/socketServer.js";
 import { agent, request, truncateAll } from "./helpers.js";
 
 const EMAIL = "socket@example.com";
