@@ -1,5 +1,5 @@
 import { nanoid } from "nanoid";
-import { and, desc, eq, isNotNull, sql } from "drizzle-orm";
+import { and, desc, eq, isNotNull, lte, sql } from "drizzle-orm";
 
 import { env } from "../config/env.js";
 import { db, withRetry } from "../db/client.js";
@@ -149,4 +149,14 @@ export const checkpointDocument = async (
             .returning({ id: documents.id });
 
         return rows.length > 0;
+    });
+
+export const sweepExpiredDocuments = async (now: Date = new Date()): Promise<string[]> =>
+    withRetry(async () => {
+        const deleted = await db
+            .delete(documents)
+            .where(and(isNotNull(documents.expiresAt), lte(documents.expiresAt, now)))
+            .returning({ id: documents.id });
+
+        return deleted.map((row) => row.id);
     });

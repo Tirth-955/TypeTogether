@@ -23,6 +23,8 @@ const envSchema = z.object({
     LINK_RETENTION_HOURS: z.coerce.number().int().positive().max(168).default(24),
 
     RETENTION_CHECKPOINT_SECONDS: z.coerce.number().positive().max(86_400).default(30),
+
+    EXPIRY_SWEEP_SECONDS: z.coerce.number().positive().max(86_400).default(60),
 });
 
 const loadEnv = () => {

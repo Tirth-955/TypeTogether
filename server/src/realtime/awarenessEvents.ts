@@ -56,12 +56,18 @@ export const clearClientPresence = (
     session: registry.DocumentSession,
     clientId: number
 ): void => {
-    removeAwarenessStates(session.awareness, [clientId], "socket disconnect");
+    if (!session.awareness || !session.awareness.meta.has(clientId)) {
+        return;
+    }
 
-    socket
-        .to(documentRoom(docId))
-        .emit("awareness:update", {
+    try {
+        removeAwarenessStates(session.awareness, [clientId], "socket disconnect");
+
+        socket.to(documentRoom(docId)).emit("awareness:update", {
             docId,
             update: encodeAwarenessUpdate(session.awareness, [clientId]),
         });
+    } catch (error) {
+        console.warn(`Failed to clear client presence for ${clientId} in doc ${docId}:`, error);
+    }
 };
