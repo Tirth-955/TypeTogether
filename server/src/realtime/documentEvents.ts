@@ -21,12 +21,18 @@ export const registerDocumentEvents = (socket: TypedSocket): void => {
             return;
         }
 
-        if (socket.data.docId) {
-            ack({ ok: false, code: "conflict", message: "Socket already joined a document" });
+        const { docId, clientId } = parsed.data;
+
+        // Prevent joining two different documents simultaneously on one socket
+        if (socket.data.docId && socket.data.docId !== docId) {
+            ack({
+                ok: false,
+                code: "conflict",
+                message: "Socket already joined a different document",
+            });
+            
             return;
         }
-
-        const { docId, clientId } = parsed.data;
 
         let session: registry.DocumentSession | null = null;
 

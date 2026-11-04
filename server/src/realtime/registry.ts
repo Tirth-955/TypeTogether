@@ -149,3 +149,9 @@ export const discardSession = (docId: string): void => {
 
     sessions.delete(docId);
 };
+
+export const discardAllSessions = (): void => {
+    for (const docId of Array.from(sessions.keys())) {
+        discardSession(docId);
+    }
+};
