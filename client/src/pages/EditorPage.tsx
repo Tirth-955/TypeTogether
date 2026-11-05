@@ -1,0 +1,290 @@
+import { useEffect, useRef, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import { EditorState } from "@codemirror/state";
+import { EditorView } from "@codemirror/view";
+import * as Y from "yjs";
+import { yCollab } from "y-codemirror.next";
+
+import { api, getApiErrorMessage, getApiErrorStatus, type DocumentDetail } from "../lib/api";
+import { useAuth } from "../lib/auth";
+import { CollabProvider, type Collaborator, type ConnectionStatus } from "../lib/collabProvider";
+import { editorExtensions } from "../lib/codemirrorSetup";
+import { SaveLoginModal } from "../components/SaveLoginModal";
+
+const connectionView: Record<ConnectionStatus, { label: string; dot: string; text: string }> = {
+    connected: { label: "Live", dot: "bg-emerald-500", text: "text-emerald-600" },
+    connecting: { label: "Connecting…", dot: "bg-gray-400", text: "text-gray-500" },
+    reconnecting: { label: "Reconnecting…", dot: "bg-amber-500", text: "text-amber-600" },
+    disconnected: { label: "Offline", dot: "bg-red-500", text: "text-red-500" },
+};
+
+export const EditorPage = () => {
+    const { docId } = useParams<{ docId: string }>();
+    const { user } = useAuth();
+
+    const editorHost = useRef<HTMLDivElement | null>(null);
+    const providerRef = useRef<CollabProvider | null>(null);
+
+    const [document, setDocument] = useState<DocumentDetail | null>(null);
+    const [error, setError] = useState<string | null>(null);
+
+    const [connection, setConnection] = useState<ConnectionStatus>("connecting");
+    const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
+    const [localClientId, setLocalClientId] = useState(0);
+    const [dirty, setDirty] = useState(false);
+
+    const [saving, setSaving] = useState(false);
+    const [saveError, setSaveError] = useState<string | null>(null);
+    const [showSaveLogin, setShowSaveLogin] = useState(false);
+
+    const performSave = async (): Promise<void> => {
+        if (!document || saving) {
+            return;
+        }
+
+        const provider = providerRef.current;
+        const payload = {
+            content: provider ? provider.text.toString() : document.content,
+            title: document.title,
+        };
+
+        setSaving(true);
+        setSaveError(null);
+
+        try {
+            const result = await api.saveDocument(docId!, payload);
+
+            setDocument((current) =>
+                current
+                    ? {
+                          ...current,
+                          content: payload.content,
+                          saved: result.saved,
+                          updatedAt: result.updatedAt,
+                      }
+                    : current
+            );
+            setDirty(false);
+            setShowSaveLogin(false);
+        } catch (err) {
+            if (getApiErrorStatus(err) === 401) {
+                setShowSaveLogin(true);
+            } else {
+                setSaveError(getApiErrorMessage(err));
+                setShowSaveLogin(false);
+            }
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    useEffect(() => {
+        if (!docId) {
+            return;
+        }
+
+        setDocument(null);
+        setError(null);
+
+        let cancelled = false;
+
+        api.getDocument(docId)
+            .then((detail) => {
+                if (!cancelled) {
+                    setDocument(detail);
+                }
+            })
+            .catch((err: unknown) => {
+                if (!cancelled) {
+                    setError(getApiErrorMessage(err));
+                }
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [docId]);
+
+    useEffect(() => {
+        if (!docId || !document || !editorHost.current) {
+            return;
+        }
+
+        let cancelled = false;
+        let view: EditorView | null = null;
+        let provider: CollabProvider | null = null;
+
+        try {
+            provider = new CollabProvider(docId, {
+                onError: (message) => {
+                    if (!cancelled) {
+                        setError(message);
+                    }
+                },
+                onJoinError: (code, message) => {
+                    if (!cancelled) {
+                        setError(message);
+                        void code;
+                    }
+                },
+                onConnectionChange: (status) => {
+                    if (!cancelled) {
+                        setConnection(status);
+                    }
+                },
+            });
+            providerRef.current = provider;
+            setLocalClientId(provider.ydoc.clientID);
+            setDirty(false);
+            setConnection(provider.connection);
+            provider.setLocalIdentity(
+                user ? user.email : `Guest ${provider.ydoc.clientID % 10_000}`
+            );
+
+            const sharedText = provider.text;
+
+            view = new EditorView({
+                state: EditorState.create({
+                    doc: sharedText.toString(),
+                    extensions: [
+                        ...editorExtensions(),
+                        yCollab(sharedText, provider.awareness, {
+                            undoManager: new Y.UndoManager(sharedText),
+                        }),
+                    ],
+                }),
+                parent: editorHost.current,
+            });
+
+            const refreshPresence = () => {
+                if (!cancelled) {
+                    setCollaborators(provider.listCollaborators());
+                }
+            };
+            provider.awareness.on("update", refreshPresence);
+            refreshPresence();
+
+            provider.ydoc.on("update", (_update: Uint8Array, origin: unknown) => {
+                if (origin !== "remote" && !cancelled) {
+                    setDirty(true);
+                }
+            });
+        } catch (err) {
+            if (!cancelled) {
+                setError(getApiErrorMessage(err));
+            }
+        }
+
+        return () => {
+            cancelled = true;
+            view?.destroy();
+            provider?.destroy();
+
+            if (providerRef.current === provider) {
+                providerRef.current = null;
+            }
+        };
+    }, [docId, document, user]);
+
+    if (error && !document) {
+        return (
+            <main className="mx-auto max-w-2xl px-4 py-12">
+                <Link to="/dashboard" className="text-sm text-blue-600">
+                    ← Dashboard
+                </Link>
+                <h1 className="mt-4 text-2xl font-semibold">Document unavailable</h1>
+                <p className="mt-2 text-sm text-red-600">{error}</p>
+                <p className="mt-4 text-sm text-gray-500">
+                    The link may be unknown, or its 24-hour retention window has expired without
+                    anyone saving the document.
+                </p>
+            </main>
+        );
+    }
+
+    if (!document) {
+        return (
+            <main className="mx-auto max-w-2xl px-4 py-12">
+                <p className="text-sm text-gray-500">Loading document…</p>
+            </main>
+        );
+    }
+
+    const status = connectionView[connection];
+
+    return (
+        <main className="mx-auto flex h-dvh max-w-6xl flex-col px-4 py-4">
+            <header className="flex items-center justify-between gap-3 pb-3">
+                <span className="flex min-w-0 items-center gap-3">
+                    <Link to="/dashboard" className="text-sm text-blue-600">
+                        ← Dashboard
+                    </Link>
+                    <h1 className="truncate text-lg font-semibold">{document.title}</h1>
+                </span>
+
+                <span className="flex shrink-0 items-center gap-3">
+                    <button
+                        type="button"
+                        onClick={() => void performSave()}
+                        disabled={saving}
+                        className="rounded-md bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700 disabled:opacity-60"
+                    >
+                        {saving ? "Saving…" : dirty ? "Save" : "Saved"}
+                    </button>
+
+                    {dirty || !document.saved ? (
+                        <span
+                            className={`hidden rounded-full px-2.5 py-1 text-xs font-medium sm:inline ${
+                                dirty ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-500"
+                            }`}
+                        >
+                            {dirty ? "Unsaved changes" : "Unsaved"}
+                        </span>
+                    ) : null}
+
+                    <span className="flex items-center">
+                        {collaborators.map((collaborator) => (
+                            <span
+                                key={collaborator.clientId}
+                                title={
+                                    collaborator.clientId === localClientId
+                                        ? `${collaborator.name} (you)`
+                                        : collaborator.name
+                                }
+                                style={{ backgroundColor: collaborator.color }}
+                                className="-ml-1.5 inline-flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border-2 border-white text-[11px] font-bold text-white first:ml-0"
+                            >
+                                {collaborator.name.trim().charAt(0).toUpperCase() || "?"}
+                            </span>
+                        ))}
+                    </span>
+
+                    <span className="hidden items-center gap-1.5 text-xs sm:flex">
+                        <span className={`h-1.5 w-1.5 rounded-full ${status.dot}`} />
+                        <span className={status.text}>{status.label}</span>
+                    </span>
+                </span>
+            </header>
+
+            {(error ?? saveError) && (
+                <p className="mb-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+                    {error ?? saveError}
+                </p>
+            )}
+
+            {showSaveLogin && (
+                <SaveLoginModal
+                    onLoggedIn={() => void performSave()}
+                    onClose={() => setShowSaveLogin(false)}
+                />
+            )}
+
+            <div className="min-h-0 flex-1">
+                <div
+                    ref={editorHost}
+                    className="h-full min-w-0 overflow-hidden rounded-lg border border-gray-300 bg-white"
+                />
+            </div>
+        </main>
+    );
+};
