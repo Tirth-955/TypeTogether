@@ -31,8 +31,6 @@ export type User = {
 export type DocumentListItem = {
     id: string;
     title: string;
-    docType: "text" | "markdown" | "code";
-    language: string | null;
     createdAt: string;
     updatedAt: string;
 };
@@ -40,16 +38,12 @@ export type DocumentListItem = {
 export type CreatedDocument = {
     id: string;
     title: string;
-    docType: "text" | "markdown" | "code";
-    language: string | null;
     shareUrl: string;
 };
 
 export type DocumentDetail = {
     id: string;
     title: string;
-    docType: "text" | "markdown" | "code";
-    language: string | null;
     content: string;
     saved: boolean;
     createdAt: string;
@@ -59,8 +53,6 @@ export type DocumentDetail = {
 export type SaveResult = {
     id: string;
     title: string;
-    docType: "text" | "markdown" | "code";
-    language: string | null;
     saved: boolean;
     shareUrl: string;
     updatedAt: string;
@@ -108,11 +100,7 @@ export const api = {
         return data.documents;
     },
 
-    createDocument: async (input: {
-        title: string;
-        docType: "text" | "markdown" | "code";
-        language?: string;
-    }): Promise<CreatedDocument> => {
+    createDocument: async (input: { title: string }): Promise<CreatedDocument> => {
         const { data } = await http.post<{
             status: "ok";
             document: CreatedDocument;

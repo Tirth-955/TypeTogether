@@ -15,6 +15,13 @@
       "when": 1793376508525,
       "tag": "0001_fat_scream",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793862351801,
+      "tag": "0002_steady_emma_frost",
+      "breakpoints": true
     }
   ]
 }

@@ -25,7 +25,7 @@ const PASSWORD = "password123";
 
 const trackedDocIds: string[] = [];
 
-const createDoc = async (body: Record<string, unknown> = { title: "Draft", docType: "markdown" }) => {
+const createDoc = async (body: Record<string, unknown> = { title: "Draft" }) => {
     const res = await request.post("/api/v1/documents").send(body);
 
     if (res.status !== 201) {
@@ -62,7 +62,7 @@ afterAll(async () => {
 
 describe("Phase 3.6 — 24-hour retention checkpointing", () => {
     it("never marks session dirty on initial load/seeding", async () => {
-        const doc = await createDoc({ title: "Seed Test", docType: "text" });
+        const doc = await createDoc({ title: "Seed Test" });
 
         const session = await getOrCreateSession(doc.id);
         expect(session).not.toBeNull();
@@ -125,8 +125,8 @@ describe("Phase 3.6 — 24-hour retention checkpointing", () => {
     });
 
     it("flushes only dirty sessions in flushDirtySessions()", async () => {
-        const doc1 = await createDoc({ title: "Doc 1", docType: "text" });
-        const doc2 = await createDoc({ title: "Doc 2", docType: "text" });
+        const doc1 = await createDoc({ title: "Doc 1" });
+        const doc2 = await createDoc({ title: "Doc 2" });
 
         const session1 = (await getOrCreateSession(doc1.id))!;
         const session2 = (await getOrCreateSession(doc2.id))!;

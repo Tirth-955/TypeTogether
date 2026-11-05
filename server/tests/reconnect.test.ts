@@ -21,7 +21,7 @@ let httpServer: Server;
 let serverUrl = "";
 const trackedDocIds: string[] = [];
 
-const createDoc = async (body: Record<string, unknown> = { title: "Draft", docType: "text" }) => {
+const createDoc = async (body: Record<string, unknown> = { title: "Draft" }) => {
     const res = await request.post("/api/v1/documents").send(body);
 
     if (res.status !== 201) {
@@ -115,7 +115,7 @@ afterAll(async () => {
 
 describe("Phase 3.8 — Reconnect & Recovery", () => {
     it("rebuilds the session from the checkpointed PostgreSQL row after a simulated server restart", async () => {
-        const doc = await createDoc({ title: "Restart Test", docType: "text" });
+        const doc = await createDoc({ title: "Restart Test" });
 
         // Client 1 connects and types content
         const client1 = await setupSyncClient(doc.id, 101);
@@ -152,7 +152,7 @@ describe("Phase 3.8 — Reconnect & Recovery", () => {
     });
 
     it("rejects rejoin with 404/notFound if the document expired during server downtime", async () => {
-        const doc = await createDoc({ title: "Expired Offline", docType: "text" });
+        const doc = await createDoc({ title: "Expired Offline" });
 
         // Age expires_at past deadline
         const past = new Date(Date.now() - 60_000);
@@ -182,7 +182,7 @@ describe("Phase 3.8 — Reconnect & Recovery", () => {
     });
 
     it("allows idempotent rejoin on the same socket for the same document", async () => {
-        const doc = await createDoc({ title: "Idempotent Rejoin", docType: "text" });
+        const doc = await createDoc({ title: "Idempotent Rejoin" });
         const { client } = await setupSyncClient(doc.id, 404);
 
         try {
@@ -200,7 +200,7 @@ describe("Phase 3.8 — Reconnect & Recovery", () => {
     });
 
     it("supports concurrent editing between two clients without losing edits", async () => {
-        const doc = await createDoc({ title: "Concurrent Edit", docType: "text" });
+        const doc = await createDoc({ title: "Concurrent Edit" });
 
         const clientA = await setupSyncClient(doc.id, 1001);
         const clientB = await setupSyncClient(doc.id, 1002);

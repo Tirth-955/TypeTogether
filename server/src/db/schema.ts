@@ -16,8 +16,6 @@ export const documents = pgTable(
     {
         id: text("id").primaryKey(),
         title: text("title").notNull(),
-        docType: text("doc_type").notNull(),
-        language: text("language"),
         content: text("content").notNull().default(""),
 
         creatorId: uuid("creator_id").references(() => users.id, { onDelete: "set null" }),

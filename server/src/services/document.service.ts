@@ -4,15 +4,12 @@ import { and, desc, eq, isNotNull, lte, sql } from "drizzle-orm";
 import { env } from "../config/env.js";
 import { db, withRetry } from "../db/client.js";
 import { documents } from "../db/schema.js";
-import type { DocType, LanguageId } from "../constants/document.js";
 
 export type CreateDocumentInput = {
     title: string;
-    docType: DocType;
-    language: LanguageId | null;
 };
 
-export const createDocument = async ({ title, docType, language }: CreateDocumentInput) => {
+export const createDocument = async ({ title }: CreateDocumentInput) => {
     const id = nanoid(21);
 
     const expiresAt = new Date(Date.now() + env.LINK_RETENTION_HOURS * 3_600_000);
@@ -20,7 +17,7 @@ export const createDocument = async ({ title, docType, language }: CreateDocumen
     return withRetry(async () => {
         const [inserted] = await db
             .insert(documents)
-            .values({ id, title, docType, language, content: "", expiresAt })
+            .values({ id, title, content: "", expiresAt })
             .onConflictDoNothing()
             .returning();
 
@@ -61,8 +58,6 @@ export const saveDocument = async ({ id, content, title, userId }: SaveDocumentI
 export type DocumentListItem = {
     id: string;
     title: string;
-    docType: DocType;
-    language: string | null;
     createdAt: Date;
     updatedAt: Date;
 };
@@ -73,8 +68,6 @@ export const listDocumentsByCreator = async (userId: string): Promise<DocumentLi
             .select({
                 id: documents.id,
                 title: documents.title,
-                docType: documents.docType,
-                language: documents.language,
                 createdAt: documents.createdAt,
                 updatedAt: documents.updatedAt,
             })
@@ -83,7 +76,7 @@ export const listDocumentsByCreator = async (userId: string): Promise<DocumentLi
             .orderBy(desc(documents.updatedAt))
             .limit(100);
 
-        return rows.map((row) => ({ ...row, docType: row.docType as DocType }));
+        return rows;
     });
 
 export type DeleteDocumentInput = {

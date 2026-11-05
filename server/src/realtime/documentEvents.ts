@@ -63,8 +63,6 @@ export const registerDocumentEvents = (socket: TypedSocket): void => {
             document: {
                 id: document.id,
                 title: document.title,
-                docType: document.docType,
-                language: document.language,
             },
             user: {
                 id: socket.data.user ? socket.data.user.id : null,

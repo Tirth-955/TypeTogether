@@ -5,8 +5,6 @@ import { applyAwarenessUpdate, Awareness, encodeAwarenessUpdate } from "y-protoc
 export type CollabDocumentMeta = {
     id: string;
     title: string;
-    docType: "text" | "markdown" | "code";
-    language: string | null;
 };
 
 export type ConnectionStatus = "connected" | "connecting" | "reconnecting" | "disconnected";

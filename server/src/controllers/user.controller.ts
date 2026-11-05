@@ -14,8 +14,6 @@ export const myDocuments = async (req: Request, res: Response) => {
         documents: documents.map((document) => ({
             id: document.id,
             title: document.title,
-            docType: document.docType,
-            language: document.language,
             createdAt: document.createdAt.toISOString(),
             updatedAt: document.updatedAt.toISOString(),
         })),

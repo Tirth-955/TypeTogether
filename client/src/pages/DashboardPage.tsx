@@ -42,8 +42,6 @@ export const DashboardPage = () => {
                       {
                           id: created.id,
                           title: created.title,
-                          docType: created.docType,
-                          language: created.language,
                           createdAt: new Date().toISOString(),
                           updatedAt: new Date().toISOString(),
                       },

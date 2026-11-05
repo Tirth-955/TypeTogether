@@ -47,7 +47,7 @@ afterEach(async () => {
 
 describe("document registry", () => {
     it("seeds a fresh Y.Doc from the saved document content", async () => {
-        const created = await createDoc({ title: "Notes", docType: "text" });
+        const created = await createDoc({ title: "Notes" });
         await agent.put(`/api/v1/documents/${created.id}`).send({ content: "Hello registry" });
 
         const session = await getOrCreateSession(created.id);
@@ -62,7 +62,7 @@ describe("document registry", () => {
     });
 
     it("reuses one session object for repeated lookups", async () => {
-        const created = await createDoc({ title: "Notes", docType: "markdown" });
+        const created = await createDoc({ title: "Notes" });
 
         const first = await getOrCreateSession(created.id);
         const second = await getOrCreateSession(created.id);
@@ -72,7 +72,7 @@ describe("document registry", () => {
     });
 
     it("tracks sockets and cancels the GC timer when someone rejoins", async () => {
-        const created = await createDoc({ title: "Notes", docType: "text" });
+        const created = await createDoc({ title: "Notes" });
         const session = (await getOrCreateSession(created.id))!;
 
         addSocket(created.id, "socket-1");
@@ -93,7 +93,7 @@ describe("document registry", () => {
         await vi.useFakeTimers();
 
         try {
-            const created = await createDoc({ title: "Notes", docType: "text" });
+            const created = await createDoc({ title: "Notes" });
             await agent.put(`/api/v1/documents/${created.id}`).send({ content: "To survive a GC" });
             await getOrCreateSession(created.id);
 

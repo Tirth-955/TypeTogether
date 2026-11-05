@@ -25,7 +25,7 @@ let serverUrl = "";
 const trackedDocIds: string[] = [];
 
 const createDoc = async (
-    body: Record<string, unknown> = { title: "Draft", docType: "markdown" }
+    body: Record<string, unknown> = { title: "Draft" }
 ) => {
     const res = await request.post("/api/v1/documents").send(body);
 
@@ -73,7 +73,7 @@ afterAll(async () => {
 
 describe("Phase 3.7 — Expiry sweep", () => {
     it("deletes unsaved documents whose expires_at has passed", async () => {
-        const doc = await createDoc({ title: "Expired Doc", docType: "text" });
+        const doc = await createDoc({ title: "Expired Doc" });
 
         // Manually age the expires_at timestamp to 10 minutes in the past
         const past = new Date(Date.now() - 10 * 60_000);
@@ -88,7 +88,7 @@ describe("Phase 3.7 — Expiry sweep", () => {
     });
 
     it("preserves unsaved documents whose expires_at is still in the future", async () => {
-        const doc = await createDoc({ title: "Active Doc", docType: "text" });
+        const doc = await createDoc({ title: "Active Doc" });
 
         // expires_at is default 24 hours in the future
         const deleted = await runExpirySweep();
@@ -101,7 +101,7 @@ describe("Phase 3.7 — Expiry sweep", () => {
     });
 
     it("never touches saved documents (expires_at IS NULL) even if simulated time is far in the future", async () => {
-        const doc = await createDoc({ title: "Permanent Doc", docType: "text" });
+        const doc = await createDoc({ title: "Permanent Doc" });
 
         // Logged-in user saves document, setting expires_at = NULL
         const saveRes = await agent
@@ -124,7 +124,7 @@ describe("Phase 3.7 — Expiry sweep", () => {
     });
 
     it("discards in-memory session and destroys Y.Doc when an expired document is swept", async () => {
-        const doc = await createDoc({ title: "In-Memory Expired", docType: "markdown" });
+        const doc = await createDoc({ title: "In-Memory Expired" });
 
         // Load into memory registry
         const session = await getOrCreateSession(doc.id);
@@ -143,7 +143,7 @@ describe("Phase 3.7 — Expiry sweep", () => {
     });
 
     it("notifies connected sockets with an error and disconnects them when a document expires", async () => {
-        const doc = await createDoc({ title: "Live Socket Expired", docType: "text" });
+        const doc = await createDoc({ title: "Live Socket Expired" });
         await getOrCreateSession(doc.id);
 
         const client: ClientSocket = ioClient(serverUrl);

@@ -26,8 +26,6 @@ export interface ServerToClientEvents {
 export type JoinedDocumentMeta = {
     id: string;
     title: string;
-    docType: string;
-    language: string | null;
 };
 
 export type JoinedUserMeta = {

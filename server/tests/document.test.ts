@@ -23,64 +23,20 @@ const createDoc = async (body: Record<string, unknown>) => {
 describe("POST /api/v1/documents", () => {
     afterEach(truncateDocuments);
 
-    it("creates an unsaved markdown document without auth and returns a share link", async () => {
-        const res = await request
-            .post("/api/v1/documents")
-            .send({ title: "Notes", docType: "markdown" });
+    it("creates an unsaved plain-text document without auth and returns a share link", async () => {
+        const res = await request.post("/api/v1/documents").send({ title: "Notes" });
 
         expect(res.status).toBe(201);
         expect(res.body.status).toBe("ok");
         expect(res.body.document.title).toBe("Notes");
-        expect(res.body.document.docType).toBe("markdown");
-        expect(res.body.document.language).toBeNull();
 
         // Unguessable nanoid id, and the share URL derived from it.
         expect(res.body.document.id).toMatch(/^[A-Za-z0-9_-]{21}$/);
         expect(res.body.document.shareUrl).toBe(`/d/${res.body.document.id}`);
     });
 
-    it("defaults the language to javascript for a code document", async () => {
-        const res = await request
-            .post("/api/v1/documents")
-            .send({ title: "script", docType: "code" });
-
-        expect(res.status).toBe(201);
-        expect(res.body.document.language).toBe("javascript");
-    });
-
-    it("keeps the requested language for a code document", async () => {
-        const res = await request
-            .post("/api/v1/documents")
-            .send({ title: "script", docType: "code", language: "python" });
-
-        expect(res.status).toBe(201);
-        expect(res.body.document.language).toBe("python");
-    });
-
-    it("rejects a language on a non-code document with 400", async () => {
-        const res = await request
-            .post("/api/v1/documents")
-            .send({ title: "Notes", docType: "markdown", language: "python" });
-
-        expect(res.status).toBe(400);
-        expect(res.body.issues).toEqual(
-            expect.arrayContaining([expect.objectContaining({ path: "language" })])
-        );
-    });
-
-    it("rejects an unknown doc type with 400", async () => {
-        const res = await request
-            .post("/api/v1/documents")
-            .send({ title: "Notes", docType: "docx" });
-
-        expect(res.status).toBe(400);
-        expect(res.body.issues).toEqual(
-            expect.arrayContaining([expect.objectContaining({ path: "docType" })])
-        );
-    });
-
     it("rejects an empty title with 400", async () => {
-        const res = await request.post("/api/v1/documents").send({ title: "   ", docType: "text" });
+        const res = await request.post("/api/v1/documents").send({ title: "   " });
 
         expect(res.status).toBe(400);
         expect(res.body.issues).toEqual(
@@ -89,17 +45,7 @@ describe("POST /api/v1/documents", () => {
     });
 
     it("rejects a title longer than 120 characters with 400", async () => {
-        const res = await request
-            .post("/api/v1/documents")
-            .send({ title: "x".repeat(121), docType: "text" });
-
-        expect(res.status).toBe(400);
-    });
-
-    it("rejects an unknown language with 400", async () => {
-        const res = await request
-            .post("/api/v1/documents")
-            .send({ title: "script", docType: "code", language: "klingon" });
+        const res = await request.post("/api/v1/documents").send({ title: "x".repeat(121) });
 
         expect(res.status).toBe(400);
     });
@@ -109,7 +55,7 @@ describe("GET /api/v1/documents/:id", () => {
     afterEach(truncateDocuments);
 
     it("publicly fetches a document by its ID without auth", async () => {
-        const created = await createDoc({ title: "Notes", docType: "markdown" });
+        const created = await createDoc({ title: "Notes" });
 
         const res = await request.get(`/api/v1/documents/${created.id}`);
 
@@ -117,7 +63,6 @@ describe("GET /api/v1/documents/:id", () => {
         expect(res.body.status).toBe("ok");
         expect(res.body.document.id).toBe(created.id);
         expect(res.body.document.title).toBe("Notes");
-        expect(res.body.document.docType).toBe("markdown");
         expect(res.body.document.content).toBe("");
         expect(res.body.document.saved).toBe(false);
         expect(res.body.document.createdAt).toEqual(expect.any(String));
@@ -139,7 +84,6 @@ describe("GET /api/v1/documents/:id", () => {
         await db.insert(documents).values({
             id: expiredId,
             title: "Expired",
-            docType: "text",
             expiresAt: new Date(Date.now() - 1_000),
         });
 
@@ -168,7 +112,7 @@ describe("PUT /api/v1/documents/:id", () => {
     afterEach(truncateDocuments);
 
     it("rejects an anonymous save with 401", async () => {
-        const created = await createDoc({ title: "Notes", docType: "text" });
+        const created = await createDoc({ title: "Notes" });
 
         const res = await request.put(`/api/v1/documents/${created.id}`).send({ content: "hello" });
 
@@ -177,7 +121,7 @@ describe("PUT /api/v1/documents/:id", () => {
     });
 
     it("saves content and title, stamps the saver as creator, and makes the document permanent", async () => {
-        const created = await createDoc({ title: "Notes", docType: "text" });
+        const created = await createDoc({ title: "Notes" });
 
         const res = await agent
             .put(`/api/v1/documents/${created.id}`)
@@ -197,7 +141,7 @@ describe("PUT /api/v1/documents/:id", () => {
     });
 
     it("keeps a previously saved document permanent on a later save", async () => {
-        const created = await createDoc({ title: "Notes", docType: "text" });
+        const created = await createDoc({ title: "Notes" });
 
         await agent.put(`/api/v1/documents/${created.id}`).send({ content: "first" });
         const res = await agent.put(`/api/v1/documents/${created.id}`).send({ content: "second" });
@@ -223,7 +167,7 @@ describe("PUT /api/v1/documents/:id", () => {
     });
 
     it("rejects a title longer than 120 characters with 400", async () => {
-        const created = await createDoc({ title: "Notes", docType: "text" });
+        const created = await createDoc({ title: "Notes" });
 
         const res = await agent
             .put(`/api/v1/documents/${created.id}`)
@@ -258,8 +202,8 @@ describe("GET /api/v1/users/me/documents", () => {
     });
 
     it("lists the user's saved documents newest first", async () => {
-        const first = await createDoc({ title: "First", docType: "text" });
-        const second = await createDoc({ title: "Second", docType: "markdown" });
+        const first = await createDoc({ title: "First" });
+        const second = await createDoc({ title: "Second" });
 
         await agent.put(`/api/v1/documents/${first.id}`).send({ content: "" });
         // Guarantee unambiguous updatedAt ordering at millisecond precision.
@@ -274,14 +218,14 @@ describe("GET /api/v1/users/me/documents", () => {
         expect(res.body.documents).toHaveLength(2);
         expect(res.body.documents[0].id).toBe(second.id);
         expect(res.body.documents[1].id).toBe(first.id);
-        expect(res.body.documents[0]).toMatchObject({ title: "Second", docType: "markdown" });
+        expect(res.body.documents[0]).toMatchObject({ title: "Second" });
         // List projection stays lean — no document content.
         expect(res.body.documents[0]).not.toHaveProperty("content");
     });
 
     it("does not list documents that were never saved", async () => {
-        const saved = await createDoc({ title: "Saved", docType: "text" });
-        await createDoc({ title: "Unsaved", docType: "text" });
+        const saved = await createDoc({ title: "Saved" });
+        await createDoc({ title: "Unsaved" });
 
         await agent.put(`/api/v1/documents/${saved.id}`).send({ content: "" });
 
@@ -308,7 +252,7 @@ describe("DELETE /api/v1/documents/:id", () => {
     afterEach(truncateDocuments);
 
     it("rejects an anonymous delete with 401", async () => {
-        const created = await createDoc({ title: "Notes", docType: "text" });
+        const created = await createDoc({ title: "Notes" });
 
         const res = await request.delete(`/api/v1/documents/${created.id}`);
 
@@ -317,7 +261,7 @@ describe("DELETE /api/v1/documents/:id", () => {
     });
 
     it("rejects deletion of an unsaved (creator-less) document with 403", async () => {
-        const created = await createDoc({ title: "Notes", docType: "text" });
+        const created = await createDoc({ title: "Notes" });
 
         const res = await agent.delete(`/api/v1/documents/${created.id}`);
 
@@ -335,7 +279,7 @@ describe("DELETE /api/v1/documents/:id", () => {
             await ownerAgent.post("/api/v1/auth/login").send({ email: "owner@example.com", password: PASSWORD });
         }
 
-        const created = await createDoc({ title: "Notes", docType: "text" });
+        const created = await createDoc({ title: "Notes" });
         await ownerAgent.put(`/api/v1/documents/${created.id}`).send({ content: "" });
 
         const res = await agent.delete(`/api/v1/documents/${created.id}`);
@@ -344,7 +288,7 @@ describe("DELETE /api/v1/documents/:id", () => {
     });
 
     it("deletes the creator's own document", async () => {
-        const created = await createDoc({ title: "Notes", docType: "text" });
+        const created = await createDoc({ title: "Notes" });
         await agent.put(`/api/v1/documents/${created.id}`).send({ content: "" });
 
         const res = await agent.delete(`/api/v1/documents/${created.id}`);

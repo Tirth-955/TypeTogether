@@ -26,9 +26,9 @@ export const CreateDocumentModal = ({ onClose, onCreated }: Props) => {
         setError(null);
 
         try {
+            // Plain text only: the API takes just a title.
             const document = await api.createDocument({
                 title,
-                docType: "text",
             });
 
             setCreated(document);

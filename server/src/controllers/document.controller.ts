@@ -1,42 +1,23 @@
 import type { Request, Response } from "express";
 import { z } from "zod";
 
-import { DEFAULT_LANGUAGE, docTypeSchema, languageSchema } from "../constants/document.js";
 import { ApiError } from "../utils/ApiError.js";
 import * as documentService from "../services/document.service.js";
 
-const createDocumentSchema = z
-    .object({
-        title: z.string().trim().min(1).max(120),
-        docType: docTypeSchema,
-        language: languageSchema.optional(),
-    })
-    .superRefine((data, ctx) => {
-        if (data.docType !== "code" && data.language !== undefined) {
-            ctx.addIssue({
-                path: ["language"],
-                code: "custom",
-                message: "language is only allowed for code documents",
-            });
-        }
-    });
+const createDocumentSchema = z.object({
+    title: z.string().trim().min(1).max(120),
+});
 
 export const createDocument = async (req: Request, res: Response) => {
-    const { title, docType, language } = createDocumentSchema.parse(req.body);
+    const { title } = createDocumentSchema.parse(req.body);
 
-    const document = await documentService.createDocument({
-        title,
-        docType,
-        language: docType === "code" ? (language ?? DEFAULT_LANGUAGE) : null,
-    });
+    const document = await documentService.createDocument({ title });
 
     res.status(201).json({
         status: "ok",
         document: {
             id: document.id,
             title: document.title,
-            docType: document.docType,
-            language: document.language,
             shareUrl: `/d/${document.id}`,
         },
     });
@@ -69,8 +50,6 @@ export const saveDocument = async (req: Request, res: Response) => {
         document: {
             id: document.id,
             title: document.title,
-            docType: document.docType,
-            language: document.language,
             saved: document.expiresAt === null,
             shareUrl: `/d/${document.id}`,
             updatedAt: document.updatedAt.toISOString(),
@@ -114,8 +93,6 @@ export const getDocument = async (req: Request, res: Response) => {
         document: {
             id: document.id,
             title: document.title,
-            docType: document.docType,
-            language: document.language,
             content: document.content,
             saved: document.expiresAt === null,
             createdAt: document.createdAt.toISOString(),
