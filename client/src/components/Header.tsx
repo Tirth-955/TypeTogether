@@ -24,17 +24,17 @@ export const Header = () => {
     };
 
     return (
-        <header className="flex items-center justify-between border-b border-border px-6 py-4">
-            <Link to="/" className="text-lg font-bold tracking-tight">
+        <header className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-border px-4 py-3 sm:px-6 sm:py-4">
+            <Link to="/" className="text-base font-bold tracking-tight sm:text-lg">
                 Type<span className="text-primary">Together</span>
             </Link>
 
-            <nav className="flex items-center gap-4 text-sm">
+            <nav className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm sm:gap-x-4">
                 <button
                     type="button"
                     onClick={() => void handleNewDocument()}
                     disabled={creating}
-                    className="rounded-md bg-primary px-3 py-1.5 font-medium text-white hover:bg-primary-hover disabled:opacity-60"
+                    className="rounded-md bg-primary px-2.5 py-1.5 font-medium text-white hover:bg-primary-hover disabled:opacity-60 sm:px-3"
                 >
                     {creating ? "Creating…" : "New document"}
                 </button>
@@ -59,7 +59,7 @@ export const Header = () => {
                         </Link>
                         <Link
                             to="/signup"
-                            className="rounded-md border border-border px-3 py-1.5 font-medium hover:bg-surface-hover"
+                            className="rounded-md border border-border px-2.5 py-1.5 font-medium hover:bg-surface-hover sm:px-3"
                         >
                             Sign up
                         </Link>
