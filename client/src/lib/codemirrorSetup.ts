@@ -33,7 +33,10 @@ export const editorExtensions = (): Extension[] => [
         ".cm-selectionBackground, .cm-content ::selection": {
             backgroundColor: "color-mix(in srgb, var(--color-primary) 35%, transparent) !important",
         },
-        ".cm-cursor": { borderLeftWidth: "2px" },
+        ".cm-cursor, .cm-dropCursor": {
+            borderLeftWidth: "2px",
+            borderLeftColor: "var(--color-text)",
+        },
         ".cm-tooltip": {
             backgroundColor: "var(--color-surface-hover)",
             border: "1px solid var(--color-border)",
