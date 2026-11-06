@@ -42,5 +42,3 @@ if (env.NODE_ENV === "production" && env.JWT_SECRET === "dev-only-change-me") {
     console.error("JWT_SECRET must be changed from its development default in production");
     process.exit(1);
 }
-
-export type Env = typeof env;

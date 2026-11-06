@@ -31,7 +31,4 @@ export const documents = pgTable(
     ]
 );
 
-export type User = typeof users.$inferSelect;
-export type NewUser = typeof users.$inferInsert;
 export type Document = typeof documents.$inferSelect;
-export type NewDocument = typeof documents.$inferInsert;
