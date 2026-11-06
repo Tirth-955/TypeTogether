@@ -1,6 +1,9 @@
-import { Link } from "react-router-dom";
+import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
 
+import { Header } from "../components/Header";
 import { useAuth } from "../lib/auth";
+import { createDocumentAndOpen } from "../lib/documentCreate";
 
 const features = [
     {
@@ -19,33 +22,26 @@ const features = [
 
 export const HomePage = () => {
     const { user } = useAuth();
+    const navigate = useNavigate();
+    const [creating, setCreating] = useState(false);
+
+    const handleNewDocument = async () => {
+        if (creating) {
+            return;
+        }
+
+        setCreating(true);
+
+        try {
+            await createDocumentAndOpen(navigate);
+        } finally {
+            setCreating(false);
+        }
+    };
 
     return (
         <div className="flex min-h-dvh flex-col">
-            <header className="flex items-center justify-between border-b border-border px-6 py-4">
-                <span className="text-lg font-bold tracking-tight">
-                    Type<span className="text-primary">Together</span>
-                </span>
-                <nav className="flex items-center gap-4 text-sm">
-                    {user ? (
-                        <Link to="/dashboard" className="text-muted hover:text-text">
-                            Dashboard
-                        </Link>
-                    ) : (
-                        <>
-                            <Link to="/login" className="text-muted hover:text-text">
-                                Log in
-                            </Link>
-                            <Link
-                                to="/signup"
-                                className="rounded-md bg-primary px-3 py-1.5 font-medium text-white hover:bg-primary-hover"
-                            >
-                                Sign up
-                            </Link>
-                        </>
-                    )}
-                </nav>
-            </header>
+            <Header />
 
             <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center px-6 py-16">
                 <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
@@ -53,26 +49,10 @@ export const HomePage = () => {
                     <span className="text-primary"> in real time.</span>
                 </h1>
                 <p className="mt-4 max-w-xl text-muted">
-                    TypeTogether is a real-time collaborative markdown editor. Create a document,
-                    share the link, and start typing together — straight in your browser.
+                    {user
+                        ? "You are logged in. Create a new document or open your saved documents from the dashboard."
+                        : "Create documents without an account — the share link is the only thing anyone needs. Log in to keep a list of your saved documents and to make links permanent by saving."}
                 </p>
-
-                <div className="mt-8 flex items-center gap-4">
-                    <Link
-                        to={user ? "/dashboard" : "/signup"}
-                        className="rounded-md bg-primary px-5 py-2.5 font-medium text-white hover:bg-primary-hover"
-                    >
-                        {user ? "Open dashboard" : "Get started"}
-                    </Link>
-                    {!user && (
-                        <Link
-                            to="/login"
-                            className="rounded-md border border-border px-5 py-2.5 text-muted hover:text-text"
-                        >
-                            Log in
-                        </Link>
-                    )}
-                </div>
 
                 <ul className="mt-16 grid gap-x-8 gap-y-6 sm:grid-cols-3">
                     {features.map((f) => (
@@ -88,7 +68,7 @@ export const HomePage = () => {
             </main>
 
             <footer className="border-t border-border px-6 py-4 text-center text-sm text-muted">
-                TypeTogether — real-time collaborative markdown editor
+                TypeTogether — Real-Time Collaborative Editor
             </footer>
         </div>
     );

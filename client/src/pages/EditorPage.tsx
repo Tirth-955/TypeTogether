@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import * as Y from "yjs";
@@ -9,6 +9,7 @@ import { api, getApiErrorMessage, getApiErrorStatus, type DocumentDetail } from 
 import { useAuth } from "../lib/auth";
 import { CollabProvider, type Collaborator, type ConnectionStatus } from "../lib/collabProvider";
 import { editorExtensions } from "../lib/codemirrorSetup";
+import { Header } from "../components/Header";
 import { SaveLoginModal } from "../components/SaveLoginModal";
 
 const connectionView: Record<ConnectionStatus, { label: string; dot: string; text: string }> = {
@@ -255,131 +256,135 @@ export const EditorPage = () => {
 
     if (error && !document) {
         return (
-            <main className="mx-auto max-w-2xl px-4 py-12">
-                <Link to="/dashboard" className="text-sm text-primary">
-                    ← Dashboard
-                </Link>
-                <h1 className="mt-4 text-2xl font-semibold">Document unavailable</h1>
-                <p className="mt-2 text-sm text-danger">{error}</p>
-                <p className="mt-4 text-sm text-muted">
-                    The link may be unknown, or it may have been deleted or expired without being
-                    saved.
-                </p>
-            </main>
+            <div className="flex h-dvh flex-col">
+                <Header />
+                <main className="mx-auto max-w-2xl px-4 py-12">
+                    <h1 className="mt-4 text-2xl font-semibold">Document unavailable</h1>
+                    <p className="mt-2 text-sm text-danger">{error}</p>
+                    <p className="mt-4 text-sm text-muted">
+                        The link may be unknown, or it may have been deleted or expired without
+                        being saved.
+                    </p>
+                </main>
+            </div>
         );
     }
 
     if (!document) {
         return (
-            <main className="mx-auto max-w-2xl px-4 py-12">
-                <p className="text-sm text-muted">Loading document…</p>
-            </main>
+            <div className="flex h-dvh flex-col">
+                <Header />
+                <main className="mx-auto max-w-2xl px-4 py-12">
+                    <p className="text-sm text-muted">Loading document…</p>
+                </main>
+            </div>
         );
     }
 
     const status = connectionView[connection];
 
     return (
-        <main className="mx-auto flex h-dvh max-w-6xl flex-col px-4 py-4">
-            <header className="flex items-center justify-between gap-3 pb-3">
-                <span className="flex min-w-0 items-center gap-3">
-                    <Link to="/dashboard" className="text-sm text-primary shrink-0">
-                        ← Dashboard
-                    </Link>
-                    <input
-                        type="text"
-                        value={titleInput}
-                        onChange={(e) => setTitleInput(e.target.value)}
-                        onBlur={() => void handleRename()}
-                        onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                                e.currentTarget.blur();
-                            }
-                        }}
-                        maxLength={120}
-                        placeholder="Untitled document"
-                        className="w-44 sm:w-64 md:w-80 truncate rounded border border-transparent bg-transparent px-1.5 py-0.5 text-lg font-semibold text-text transition-colors hover:border-border focus:border-primary focus:bg-surface focus:outline-none"
-                        title="Click to rename"
-                    />
-                </span>
+        <div className="flex h-dvh flex-col">
+            <Header />
 
-                <span className="flex shrink-0 items-center gap-2 sm:gap-3">
-                    <button
-                        type="button"
-                        onClick={() => void performSave()}
-                        disabled={saving}
-                        className="rounded-md bg-primary px-3 py-1.5 text-sm text-white hover:bg-primary-hover disabled:opacity-60"
-                    >
-                        {saving ? "Saving…" : dirty ? "Save" : "Saved"}
-                    </button>
+            <main className="mx-auto flex w-full max-w-6xl min-h-0 flex-1 flex-col px-4 py-4">
+                <header className="flex items-center justify-between gap-3 pb-3">
+                    <span className="flex min-w-0 items-center gap-3">
+                        <input
+                            type="text"
+                            value={titleInput}
+                            onChange={(e) => setTitleInput(e.target.value)}
+                            onBlur={() => void handleRename()}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                    e.currentTarget.blur();
+                                }
+                            }}
+                            maxLength={120}
+                            placeholder="Untitled document"
+                            className="w-44 sm:w-64 md:w-80 truncate rounded border border-transparent bg-transparent px-1.5 py-0.5 text-lg font-semibold text-text transition-colors hover:border-border focus:border-primary focus:bg-surface focus:outline-none"
+                            title="Click to rename"
+                        />
+                    </span>
 
-                    {user && (
+                    <span className="flex shrink-0 items-center gap-2 sm:gap-3">
                         <button
                             type="button"
-                            onClick={() => void handleDelete()}
-                            disabled={deleting}
-                            className="rounded-md border border-danger/40 bg-danger/10 px-2.5 py-1.5 text-sm font-medium text-danger hover:bg-danger/20 disabled:opacity-60"
-                            title="Delete this document"
+                            onClick={() => void performSave()}
+                            disabled={saving}
+                            className="rounded-md bg-primary px-3 py-1.5 text-sm text-white hover:bg-primary-hover disabled:opacity-60"
                         >
-                            {deleting ? "Deleting…" : "Delete"}
+                            {saving ? "Saving…" : dirty ? "Save" : "Saved"}
                         </button>
-                    )}
 
-                    {dirty || !document.saved ? (
-                        <span
-                            className={`hidden rounded-full px-2.5 py-1 text-xs font-medium sm:inline ${
-                                dirty
-                                    ? "bg-amber-500/15 text-amber-300"
-                                    : "bg-surface-hover text-muted"
-                            }`}
-                        >
-                            {dirty ? "Unsaved changes" : "Unsaved"}
-                        </span>
-                    ) : null}
-
-                    <span className="flex items-center">
-                        {collaborators.map((collaborator) => (
-                            <span
-                                key={collaborator.clientId}
-                                title={
-                                    collaborator.clientId === localClientId
-                                        ? `${collaborator.name} (you)`
-                                        : collaborator.name
-                                }
-                                style={{ backgroundColor: collaborator.color }}
-                                className="-ml-1.5 inline-flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border-2 border-bg text-[11px] font-bold text-white first:ml-0"
+                        {user && (
+                            <button
+                                type="button"
+                                onClick={() => void handleDelete()}
+                                disabled={deleting}
+                                className="rounded-md border border-danger/40 bg-danger/10 px-2.5 py-1.5 text-sm font-medium text-danger hover:bg-danger/20 disabled:opacity-60"
+                                title="Delete this document"
                             >
-                                {collaborator.name.trim().charAt(0).toUpperCase() || "?"}
+                                {deleting ? "Deleting…" : "Delete"}
+                            </button>
+                        )}
+
+                        {dirty || !document.saved ? (
+                            <span
+                                className={`hidden rounded-full px-2.5 py-1 text-xs font-medium sm:inline ${
+                                    dirty
+                                        ? "bg-amber-500/15 text-amber-300"
+                                        : "bg-surface-hover text-muted"
+                                }`}
+                            >
+                                {dirty ? "Unsaved changes" : "Unsaved"}
                             </span>
-                        ))}
+                        ) : null}
+
+                        <span className="flex items-center">
+                            {collaborators.map((collaborator) => (
+                                <span
+                                    key={collaborator.clientId}
+                                    title={
+                                        collaborator.clientId === localClientId
+                                            ? `${collaborator.name} (you)`
+                                            : collaborator.name
+                                    }
+                                    style={{ backgroundColor: collaborator.color }}
+                                    className="-ml-1.5 inline-flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border-2 border-bg text-[11px] font-bold text-white first:ml-0"
+                                >
+                                    {collaborator.name.trim().charAt(0).toUpperCase() || "?"}
+                                </span>
+                            ))}
+                        </span>
+
+                        <span className="hidden items-center gap-1.5 text-xs sm:flex">
+                            <span className={`h-1.5 w-1.5 rounded-full ${status.dot}`} />
+                            <span className={status.text}>{status.label}</span>
+                        </span>
                     </span>
+                </header>
 
-                    <span className="hidden items-center gap-1.5 text-xs sm:flex">
-                        <span className={`h-1.5 w-1.5 rounded-full ${status.dot}`} />
-                        <span className={status.text}>{status.label}</span>
-                    </span>
-                </span>
-            </header>
+                {(error ?? saveError) && (
+                    <p className="mb-3 rounded-md border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">
+                        {error ?? saveError}
+                    </p>
+                )}
 
-            {(error ?? saveError) && (
-                <p className="mb-3 rounded-md border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">
-                    {error ?? saveError}
-                </p>
-            )}
+                {showSaveLogin && (
+                    <SaveLoginModal
+                        onLoggedIn={() => void performSave()}
+                        onClose={() => setShowSaveLogin(false)}
+                    />
+                )}
 
-            {showSaveLogin && (
-                <SaveLoginModal
-                    onLoggedIn={() => void performSave()}
-                    onClose={() => setShowSaveLogin(false)}
-                />
-            )}
-
-            <div className="min-h-0 flex-1">
-                <div
-                    ref={editorHost}
-                    className="h-full min-w-0 overflow-hidden rounded-lg border border-border bg-surface"
-                />
-            </div>
-        </main>
+                <div className="min-h-0 flex-1">
+                    <div
+                        ref={editorHost}
+                        className="h-full min-w-0 overflow-hidden rounded-lg border border-border bg-surface"
+                    />
+                </div>
+            </main>
+        </div>
     );
 };
