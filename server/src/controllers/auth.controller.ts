@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import { z } from "zod";
 
-import { AUTH_COOKIE_NAME, authCookieOptions } from "../config/cookies.js";
+import { AUTH_COOKIE_NAME, authCookieClearOptions, authCookieOptions } from "../config/cookies.js";
 import * as authService from "../services/auth.service.js";
 import { ApiError } from "../utils/ApiError.js";
 import { signAuthToken } from "../utils/jwt.js";
@@ -22,7 +22,7 @@ export const signup = async (req: Request, res: Response) => {
     const { email, password } = signupSchema.parse(req.body);
 
     const existing = await authService.findUserByEmail(email);
-    
+
     if (existing) {
         throw ApiError.conflict("An account with this email already exists");
     }
@@ -53,7 +53,7 @@ export const login = async (req: Request, res: Response) => {
 };
 
 export const logout = async (_req: Request, res: Response) => {
-    res.clearCookie(AUTH_COOKIE_NAME, { path: "/" }).json({ status: "ok" });
+    res.clearCookie(AUTH_COOKIE_NAME, authCookieClearOptions).json({ status: "ok" });
 };
 
 export const me = async (req: Request, res: Response) => {

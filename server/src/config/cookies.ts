@@ -10,3 +10,10 @@ export const authCookieOptions = {
     path: "/",
     maxAge: TOKEN_TTL_MS,
 } as const;
+
+export const authCookieClearOptions = {
+    httpOnly: true,
+    secure: env.NODE_ENV === "production",
+    sameSite: env.NODE_ENV === "production" ? ("none" as const) : ("lax" as const),
+    path: "/",
+} as const;
