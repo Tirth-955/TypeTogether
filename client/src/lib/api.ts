@@ -91,7 +91,7 @@ export const api = {
     },
 
     myDocuments: async (): Promise<DocumentListItem[]> => {
-        const { data } = await http.get<Ok<DocumentListItem>>("/users/me/documents");
+        const { data } = await http.get<Ok<DocumentListItem[]>>("/users/me/documents");
 
         if (!data.documents) {
             throw new Error(responseFailed("listing documents"));

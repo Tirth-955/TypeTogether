@@ -1,9 +1,5 @@
-import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-
 import { Header } from "../components/Header";
 import { useAuth } from "../lib/auth";
-import { createDocumentAndOpen } from "../lib/documentCreate";
 
 const features = [
     {
@@ -22,22 +18,6 @@ const features = [
 
 export const HomePage = () => {
     const { user } = useAuth();
-    const navigate = useNavigate();
-    const [creating, setCreating] = useState(false);
-
-    const handleNewDocument = async () => {
-        if (creating) {
-            return;
-        }
-
-        setCreating(true);
-
-        try {
-            await createDocumentAndOpen(navigate);
-        } finally {
-            setCreating(false);
-        }
-    };
 
     return (
         <div className="flex min-h-dvh flex-col">

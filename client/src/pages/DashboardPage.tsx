@@ -49,7 +49,9 @@ export const DashboardPage = () => {
 
         try {
             await api.deleteDocument(id);
+
             setDocuments((current) => current?.filter((doc) => doc.id !== id) ?? null);
+
             toast.success(`Deleted "${title}"`);
         } catch (err) {
             setError(getApiErrorMessage(err));

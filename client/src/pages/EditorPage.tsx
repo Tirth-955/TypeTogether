@@ -201,22 +201,26 @@ export const EditorPage = () => {
                     }
                 },
             });
+
             providerRef.current = provider;
-            setLocalClientId(provider.ydoc.clientID);
+            const activeProvider = provider;
+
+            setLocalClientId(activeProvider.ydoc.clientID);
             setDirty(false);
-            setConnection(provider.connection);
-            provider.setLocalIdentity(
-                user ? user.email : `Guest ${provider.ydoc.clientID % 10_000}`
+            setConnection(activeProvider.connection);
+
+            activeProvider.setLocalIdentity(
+                user ? user.email : `Guest ${activeProvider.ydoc.clientID % 10_000}`
             );
 
-            const sharedText = provider.text;
+            const sharedText = activeProvider.text;
 
             view = new EditorView({
                 state: EditorState.create({
                     doc: sharedText.toString(),
                     extensions: [
                         ...editorExtensions(),
-                        yCollab(sharedText, provider.awareness, {
+                        yCollab(sharedText, activeProvider.awareness, {
                             undoManager: new Y.UndoManager(sharedText),
                         }),
                     ],
@@ -226,13 +230,14 @@ export const EditorPage = () => {
 
             const refreshPresence = () => {
                 if (!cancelled) {
-                    setCollaborators(provider.listCollaborators());
+                    setCollaborators(activeProvider.listCollaborators());
                 }
             };
-            provider.awareness.on("update", refreshPresence);
+            
+            activeProvider.awareness.on("update", refreshPresence);
             refreshPresence();
 
-            provider.ydoc.on("update", (_update: Uint8Array, origin: unknown) => {
+            activeProvider.ydoc.on("update", (_update: Uint8Array, origin: unknown) => {
                 if (origin !== "remote" && !cancelled) {
                     setDirty(true);
                 }

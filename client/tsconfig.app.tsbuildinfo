@@ -1,0 +1,21 @@
+{
+  "root": [
+    "./src/app.tsx",
+    "./src/main.tsx",
+    "./src/vite-env.d.ts",
+    "./src/components/header.tsx",
+    "./src/components/requireguest.tsx",
+    "./src/components/saveloginmodal.tsx",
+    "./src/lib/api.ts",
+    "./src/lib/auth.tsx",
+    "./src/lib/codemirrorsetup.ts",
+    "./src/lib/collabprovider.ts",
+    "./src/lib/documentcreate.ts",
+    "./src/pages/dashboardpage.tsx",
+    "./src/pages/editorpage.tsx",
+    "./src/pages/homepage.tsx",
+    "./src/pages/loginpage.tsx",
+    "./src/pages/signuppage.tsx"
+  ],
+  "version": "5.9.3"
+}
