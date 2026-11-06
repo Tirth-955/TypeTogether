@@ -40,3 +40,8 @@ export const awarenessUpdatePayloadSchema = z.object({
     docId: documentIdSchema,
     update: binaryPayloadSchema(MAX_AWARENESS_PAYLOAD_BYTES),
 });
+
+export const documentRenamePayloadSchema = z.object({
+    docId: documentIdSchema,
+    title: z.string().trim().min(1).max(120),
+});

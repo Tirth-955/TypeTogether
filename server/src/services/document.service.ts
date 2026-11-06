@@ -153,3 +153,28 @@ export const sweepExpiredDocuments = async (now: Date = new Date()): Promise<str
 
         return deleted.map((row) => row.id);
     });
+
+export const updateDocumentTitle = async (id: string, title: string) =>
+    withRetry(async () => {
+        const [doc] = await db
+            .select({ id: documents.id, expiresAt: documents.expiresAt })
+            .from(documents)
+            .where(eq(documents.id, id))
+            .limit(1);
+
+        if (!doc) {
+            return null;
+        }
+
+        if (doc.expiresAt && doc.expiresAt.getTime() <= Date.now()) {
+            return null;
+        }
+
+        const [updated] = await db
+            .update(documents)
+            .set({ title, updatedAt: new Date() })
+            .where(eq(documents.id, id))
+            .returning();
+
+        return updated ?? null;
+    });

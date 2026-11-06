@@ -5,8 +5,10 @@ import type { TypedSocket } from "./types.js";
 import { documentRoom, emitDocumentError, logDebug } from "./shared.js";
 import { encodeAwarenessSnapshot } from "./awarenessEvents.js";
 import * as registry from "./registry.js";
+import * as documentService from "../services/document.service.js";
 import {
     documentJoinPayloadSchema,
+    documentRenamePayloadSchema,
     documentUpdatePayloadSchema,
     syncStep1PayloadSchema,
     syncStep2PayloadSchema,
@@ -30,7 +32,6 @@ export const registerDocumentEvents = (socket: TypedSocket): void => {
                 code: "conflict",
                 message: "Socket already joined a different document",
             });
-            
             return;
         }
 
@@ -169,5 +170,48 @@ export const registerDocumentEvents = (socket: TypedSocket): void => {
         }
 
         socket.to(documentRoom(docId)).emit("document:update", { docId, update });
+    });
+
+    socket.on("document:rename", async (payload, ack) => {
+        const parsed = documentRenamePayloadSchema.safeParse(payload);
+
+        if (!parsed.success) {
+            ack?.({ ok: false, message: "Invalid title" });
+            emitDocumentError(socket, "badRequest", "Malformed rename payload");
+            return;
+        }
+
+        const { docId, title } = parsed.data;
+
+        if (socket.data.docId !== docId) {
+            ack?.({ ok: false, message: "Socket has not joined this document" });
+            emitDocumentError(socket, "notJoined", "Socket has not joined this document");
+            return;
+        }
+
+        const session = registry.getJoinedSession(docId, socket.id);
+
+        if (!session) {
+            ack?.({ ok: false, message: "Document session not found" });
+            return;
+        }
+
+        try {
+            const updated = await documentService.updateDocumentTitle(docId, title);
+
+            if (!updated) {
+                ack?.({ ok: false, message: "Document not found or expired" });
+                return;
+            }
+
+            session.document.title = title;
+
+            socket.to(documentRoom(docId)).emit("document:rename", { docId, title });
+
+            ack?.({ ok: true, title });
+        } catch (error) {
+            console.error(`Failed to rename document ${docId}:`, error);
+            ack?.({ ok: false, message: "Internal error renaming document" });
+        }
     });
 };

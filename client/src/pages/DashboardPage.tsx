@@ -10,6 +10,7 @@ export const DashboardPage = () => {
     const [documents, setDocuments] = useState<DocumentListItem[] | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [creating, setCreating] = useState(false);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
 
     useEffect(() => {
         if (!user) {
@@ -49,6 +50,27 @@ export const DashboardPage = () => {
                   ]
                 : current
         );
+    };
+
+    const handleDeleteDoc = async (id: string, title: string) => {
+        if (deletingId) {
+            return;
+        }
+
+        if (!window.confirm(`Delete "${title}"? This cannot be undone.`)) {
+            return;
+        }
+
+        setDeletingId(id);
+
+        try {
+            await api.deleteDocument(id);
+            setDocuments((current) => current?.filter((doc) => doc.id !== id) ?? null);
+        } catch (err) {
+            setError(getApiErrorMessage(err));
+        } finally {
+            setDeletingId(null);
+        }
     };
 
     if (loading) {
@@ -117,18 +139,31 @@ export const DashboardPage = () => {
                             {documents.map((document) => (
                                 <li
                                     key={document.id}
-                                    className="rounded-lg border border-gray-200 bg-white"
+                                    className="group flex items-center justify-between rounded-lg border border-gray-200 bg-white hover:border-gray-300"
                                 >
                                     <Link
                                         to={`/d/${document.id}`}
-                                        className="block rounded-lg px-4 py-3 hover:bg-blue-50"
+                                        className="flex-1 rounded-l-lg px-4 py-3 hover:bg-blue-50/50"
                                     >
-                                        <span className="font-medium">{document.title}</span>
+                                        <span className="font-medium text-gray-900">
+                                            {document.title}
+                                        </span>
                                         <span className="mt-0.5 block text-sm text-gray-500">
                                             {"updated "}
                                             {new Date(document.updatedAt).toLocaleString()}
                                         </span>
                                     </Link>
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            void handleDeleteDoc(document.id, document.title)
+                                        }
+                                        disabled={deletingId === document.id}
+                                        className="mr-3 rounded px-2.5 py-1.5 text-xs font-medium text-gray-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                                        title="Delete document"
+                                    >
+                                        {deletingId === document.id ? "Deleting…" : "Delete"}
+                                    </button>
                                 </li>
                             ))}
                         </ul>

@@ -3,6 +3,9 @@ import { z } from "zod";
 
 import { ApiError } from "../utils/ApiError.js";
 import * as documentService from "../services/document.service.js";
+import * as registry from "../realtime/registry.js";
+import { documentRoom } from "../realtime/shared.js";
+import type { TypedServer } from "../realtime/types.js";
 
 const createDocumentSchema = z.object({
     title: z.string().trim().min(1).max(120),
@@ -45,6 +48,15 @@ export const saveDocument = async (req: Request, res: Response) => {
         throw ApiError.notFound("Document not found");
     }
 
+    const session = registry.getSession(id);
+    if (session) {
+        session.document.content = document.content;
+        session.document.expiresAt = null;
+        if (title !== undefined) {
+            session.document.title = document.title;
+        }
+    }
+
     res.json({
         status: "ok",
         document: {
@@ -53,6 +65,40 @@ export const saveDocument = async (req: Request, res: Response) => {
             saved: document.expiresAt === null,
             shareUrl: `/d/${document.id}`,
             updatedAt: document.updatedAt.toISOString(),
+        },
+    });
+};
+
+const updateTitleSchema = z.object({
+    title: z.string().trim().min(1).max(120),
+});
+
+export const updateTitle = async (req: Request, res: Response) => {
+    const id = Array.isArray(req.params.id) ? (req.params.id[0] ?? "") : req.params.id;
+    const { title } = updateTitleSchema.parse(req.body);
+
+    const updated = await documentService.updateDocumentTitle(id, title);
+
+    if (!updated) {
+        throw ApiError.notFound("Document not found or expired");
+    }
+
+    const session = registry.getSession(id);
+    if (session) {
+        session.document.title = title;
+    }
+
+    const io = req.app.get("io") as TypedServer | undefined;
+    if (io) {
+        io.to(documentRoom(id)).emit("document:rename", { docId: id, title });
+    }
+
+    res.json({
+        status: "ok",
+        document: {
+            id: updated.id,
+            title: updated.title,
+            updatedAt: updated.updatedAt.toISOString(),
         },
     });
 };
@@ -75,7 +121,20 @@ export const deleteDocument = async (req: Request, res: Response) => {
     if (result === "forbidden") {
         throw ApiError.forbidden();
     }
+
+    const io = req.app.get("io") as TypedServer | undefined;
     
+    if (io) {
+        const room = documentRoom(id);
+        io.to(room).emit("document:error", {
+            code: "deleted",
+            message: "Document was deleted by creator",
+        });
+        io.in(room).disconnectSockets(true);
+    }
+
+    registry.discardSession(id);
+
     res.json({ status: "ok" });
 };
 

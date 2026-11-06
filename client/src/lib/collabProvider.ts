@@ -27,11 +27,13 @@ type SyncPayload = { docId: string; stateVector: Uint8Array };
 type DiffPayload = { docId: string; diff: Uint8Array };
 type UpdatePayload = { docId: string; update: Uint8Array };
 type ErrorPayload = { code: string; message: string };
+type RenamePayload = { docId: string; title: string };
 
 export type CollabProviderOptions = {
     onError?: (message: string) => void;
     onJoinError?: (code: string, message: string) => void;
     onConnectionChange?: (status: ConnectionStatus) => void;
+    onTitleChange?: (title: string) => void;
 };
 
 const AWARENESS_COLORS = [
@@ -43,6 +45,8 @@ const AWARENESS_COLORS = [
     "#db2777",
     "#059669",
     "#ea580c",
+    "#0891b2",
+    "#4f46e5",
 ] as const;
 
 export const cursorColorFor = (clientId: number): string =>
@@ -58,6 +62,7 @@ export class CollabProvider {
     private readonly onError: (message: string) => void;
     private readonly onJoinError: (code: string, message: string) => void;
     private readonly onConnectionChange: (status: ConnectionStatus) => void;
+    private readonly onTitleChange: (title: string) => void;
     private connectionStatus: ConnectionStatus = "connecting";
     private joined = false;
 
@@ -66,6 +71,7 @@ export class CollabProvider {
         this.onError = options.onError ?? (() => undefined);
         this.onJoinError = options.onJoinError ?? (() => undefined);
         this.onConnectionChange = options.onConnectionChange ?? (() => undefined);
+        this.onTitleChange = options.onTitleChange ?? (() => undefined);
 
         this.socket = io({ withCredentials: true });
 
@@ -93,6 +99,13 @@ export class CollabProvider {
             Y.applyUpdate(ydoc, new Uint8Array(payload.update), "remote");
         });
 
+        this.socket.on("document:rename", (payload: RenamePayload) => {
+            if (payload.docId !== docId) {
+                return;
+            }
+            this.onTitleChange(payload.title);
+        });
+
         this.socket.on("document:sync_step2", (payload: DiffPayload) => {
             if (payload.docId !== docId) {
                 return;
@@ -101,7 +114,6 @@ export class CollabProvider {
         });
 
         this.socket.on("document:sync_step1", (payload: SyncPayload) => {
-            console.log("[tt] sync_step1 received"); // TEMP-DEBUG
             if (payload.docId !== docId) {
                 return;
             }
@@ -148,18 +160,14 @@ export class CollabProvider {
         );
 
         this.socket.on("document:error", (payload: ErrorPayload) => {
-            console.log("[tt] document:error", payload); // TEMP-DEBUG
             this.onError(payload.message);
         });
 
         const join = () => {
-            console.log("[tt] connected, sending document:join", docId); // TEMP-DEBUG
             this.socket.emit(
                 "document:join",
                 { docId, clientId: ydoc.clientID },
                 (ack: JoinAck) => {
-                    console.log("[tt] join ack:", ack); // TEMP-DEBUG
-
                     if (!ack || !ack.ok) {
                         this.onJoinError(
                             ack?.code ?? "error",
@@ -169,6 +177,10 @@ export class CollabProvider {
                     }
 
                     this.joined = true;
+
+                    if (ack.document?.title) {
+                        this.onTitleChange(ack.document.title);
+                    }
 
                     if (ack.user?.displayName) {
                         this.setLocalIdentity(ack.user.displayName);
@@ -196,7 +208,6 @@ export class CollabProvider {
         this.socket.io.on("reconnect_attempt", () => setConnection("reconnecting"));
 
         this.socket.on("connect_error", (error: Error) => {
-            console.log("[tt] connect_error:", error.message); // TEMP-DEBUG
             setConnection("reconnecting");
             this.onError(`Real-time connection failed: ${error.message}`);
         });
@@ -204,6 +215,10 @@ export class CollabProvider {
 
     get connection(): ConnectionStatus {
         return this.connectionStatus;
+    }
+
+    renameDocument(title: string): void {
+        this.socket.emit("document:rename", { docId: this.docId, title });
     }
 
     listCollaborators(): Collaborator[] {

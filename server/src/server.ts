@@ -21,6 +21,8 @@ try {
 const httpServer = http.createServer(app);
 const io = initSocket(httpServer);
 
+app.set("io", io);
+
 startRetentionCheckpointLoop();
 startExpirySweepLoop(io);
 

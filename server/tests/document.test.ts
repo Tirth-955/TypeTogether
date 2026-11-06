@@ -180,6 +180,65 @@ describe("PUT /api/v1/documents/:id", () => {
     });
 });
 
+describe("PATCH /api/v1/documents/:id (Rename title)", () => {
+    afterEach(truncateDocuments);
+
+    it("allows an anonymous (non-logged-in) user to rename a document title", async () => {
+        const created = await createDoc({ title: "Original Title" });
+
+        const res = await request
+            .patch(`/api/v1/documents/${created.id}`)
+            .send({ title: "Renamed Title" });
+
+        expect(res.status).toBe(200);
+        expect(res.body.status).toBe("ok");
+        expect(res.body.document.title).toBe("Renamed Title");
+
+        const fetched = await request.get(`/api/v1/documents/${created.id}`);
+        expect(fetched.body.document.title).toBe("Renamed Title");
+    });
+
+    it("allows a logged-in user to rename a document title via /:id/title", async () => {
+        const created = await createDoc({ title: "Old Title" });
+
+        const res = await agent
+            .patch(`/api/v1/documents/${created.id}/title`)
+            .send({ title: "New Title By User" });
+
+        expect(res.status).toBe(200);
+        expect(res.body.document.title).toBe("New Title By User");
+    });
+
+    it("rejects an empty or whitespace title with 400", async () => {
+        const created = await createDoc({ title: "Title" });
+
+        const res = await request
+            .patch(`/api/v1/documents/${created.id}`)
+            .send({ title: "   " });
+
+        expect(res.status).toBe(400);
+        expect(res.body.status).toBe("error");
+    });
+
+    it("rejects title longer than 120 characters with 400", async () => {
+        const created = await createDoc({ title: "Title" });
+
+        const res = await request
+            .patch(`/api/v1/documents/${created.id}`)
+            .send({ title: "a".repeat(121) });
+
+        expect(res.status).toBe(400);
+    });
+
+    it("returns 404 for an unknown or expired document", async () => {
+        const res = await request
+            .patch("/api/v1/documents/C9B7rxAc21niwDZY3kTt2")
+            .send({ title: "Doesn't exist" });
+
+        expect(res.status).toBe(404);
+    });
+});
+
 describe("GET /api/v1/users/me/documents", () => {
     const EMAIL = "saver@example.com";
     const PASSWORD = "supersecret123";

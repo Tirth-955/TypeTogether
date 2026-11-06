@@ -230,5 +230,46 @@ describe("Phase 3.8 — Reconnect & Recovery", () => {
             clientB.client.disconnect();
         }
     });
-});
 
+    it("broadcasts document:rename to other clients in the room and updates the DB", async () => {
+        const doc = await createDoc({ title: "Original Name" });
+
+        const clientA = await setupSyncClient(doc.id, 2001);
+        const clientB = await setupSyncClient(doc.id, 2002);
+
+        try {
+            const renamePromise = new Promise<{ docId: string; title: string }>((resolve) => {
+                clientB.client.on("document:rename", (payload: { docId: string; title: string }) => {
+                    resolve(payload);
+                });
+            });
+
+            // Client A renames the document
+            const ack = await new Promise<{ ok: boolean; title?: string }>((resolve) => {
+                clientA.client.emit(
+                    "document:rename",
+                    { docId: doc.id, title: "Collaboratively Renamed" },
+                    (res: { ok: boolean; title?: string }) => resolve(res)
+                );
+            });
+
+            expect(ack.ok).toBe(true);
+
+            // Client B receives the rename event
+            const received = await renamePromise;
+            expect(received.docId).toBe(doc.id);
+            expect(received.title).toBe("Collaboratively Renamed");
+
+            // Server in-memory session has updated title
+            const session = getSession(doc.id)!;
+            expect(session.document.title).toBe("Collaboratively Renamed");
+
+            // PostgreSQL has updated title
+            const [row] = await db.select().from(documents).where(eq(documents.id, doc.id));
+            expect(row.title).toBe("Collaboratively Renamed");
+        } finally {
+            clientA.client.disconnect();
+            clientB.client.disconnect();
+        }
+    });
+});

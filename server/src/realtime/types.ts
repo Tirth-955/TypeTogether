@@ -12,6 +12,10 @@ export interface ClientToServerEvents {
     "document:sync_step2": (payload: { docId: string; diff: Uint8Array }) => void;
     "document:update": (payload: { docId: string; update: Uint8Array }) => void;
     "awareness:update": (payload: { docId: string; update: Uint8Array }) => void;
+    "document:rename": (
+        payload: { docId: string; title: string },
+        ack?: (response: { ok: boolean; title?: string; message?: string }) => void
+    ) => void;
 }
 
 export interface ServerToClientEvents {
@@ -21,6 +25,7 @@ export interface ServerToClientEvents {
     "document:update": (payload: { docId: string; update: Uint8Array }) => void;
     "awareness:update": (payload: { docId: string; update: Uint8Array }) => void;
     "document:error": (payload: { code: string; message: string }) => void;
+    "document:rename": (payload: { docId: string; title: string }) => void;
 }
 
 export type JoinedDocumentMeta = {

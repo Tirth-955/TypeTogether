@@ -118,6 +118,18 @@ export const api = {
         return data.document;
     },
 
+    updateTitle: async (
+        id: string,
+        title: string
+    ): Promise<{ id: string; title: string; updatedAt: string }> => {
+        const { data } = await http.patch<{
+            status: "ok";
+            document: { id: string; title: string; updatedAt: string };
+        }>(`/documents/${encodeURIComponent(id)}`, { title });
+
+        return data.document;
+    },
+
     saveDocument: async (
         id: string,
         payload: { content: string; title: string }
@@ -128,6 +140,10 @@ export const api = {
         }>(`/documents/${encodeURIComponent(id)}`, payload);
 
         return data.document;
+    },
+
+    deleteDocument: async (id: string): Promise<void> => {
+        await http.delete(`/documents/${encodeURIComponent(id)}`);
     },
 };
 

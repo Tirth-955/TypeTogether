@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import * as Y from "yjs";
@@ -21,11 +21,13 @@ const connectionView: Record<ConnectionStatus, { label: string; dot: string; tex
 export const EditorPage = () => {
     const { docId } = useParams<{ docId: string }>();
     const { user } = useAuth();
+    const navigate = useNavigate();
 
     const editorHost = useRef<HTMLDivElement | null>(null);
     const providerRef = useRef<CollabProvider | null>(null);
 
     const [document, setDocument] = useState<DocumentDetail | null>(null);
+    const [titleInput, setTitleInput] = useState("");
     const [error, setError] = useState<string | null>(null);
 
     const [connection, setConnection] = useState<ConnectionStatus>("connecting");
@@ -36,6 +38,61 @@ export const EditorPage = () => {
     const [saving, setSaving] = useState(false);
     const [saveError, setSaveError] = useState<string | null>(null);
     const [showSaveLogin, setShowSaveLogin] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+
+    useEffect(() => {
+        if (document) {
+            setTitleInput(document.title);
+        }
+    }, [document?.title]);
+
+    const handleRename = async (): Promise<void> => {
+        const trimmed = titleInput.trim();
+
+        if (!trimmed || !docId) {
+            if (document) {
+                setTitleInput(document.title);
+            }
+            return;
+        }
+
+        if (document && trimmed === document.title) {
+            return;
+        }
+
+        try {
+            await api.updateTitle(docId, trimmed);
+            providerRef.current?.renameDocument(trimmed);
+            setDocument((current) => (current ? { ...current, title: trimmed } : current));
+        } catch (err) {
+            setError(getApiErrorMessage(err));
+            if (document) {
+                setTitleInput(document.title);
+            }
+        }
+    };
+
+    const handleDelete = async (): Promise<void> => {
+        if (!docId || deleting) {
+            return;
+        }
+
+        if (
+            !window.confirm("Are you sure you want to delete this document? This cannot be undone.")
+        ) {
+            return;
+        }
+
+        setDeleting(true);
+
+        try {
+            await api.deleteDocument(docId);
+            navigate("/dashboard");
+        } catch (err) {
+            setError(getApiErrorMessage(err));
+            setDeleting(false);
+        }
+    };
 
     const performSave = async (): Promise<void> => {
         if (!document || saving) {
@@ -45,7 +102,7 @@ export const EditorPage = () => {
         const provider = providerRef.current;
         const payload = {
             content: provider ? provider.text.toString() : document.content,
-            title: document.title,
+            title: titleInput.trim() || document.title,
         };
 
         setSaving(true);
@@ -58,6 +115,7 @@ export const EditorPage = () => {
                 current
                     ? {
                           ...current,
+                          title: payload.title,
                           content: payload.content,
                           saved: result.saved,
                           updatedAt: result.updatedAt,
@@ -92,6 +150,7 @@ export const EditorPage = () => {
             .then((detail) => {
                 if (!cancelled) {
                     setDocument(detail);
+                    setTitleInput(detail.title);
                 }
             })
             .catch((err: unknown) => {
@@ -130,6 +189,14 @@ export const EditorPage = () => {
                 onConnectionChange: (status) => {
                     if (!cancelled) {
                         setConnection(status);
+                    }
+                },
+                onTitleChange: (newTitle) => {
+                    if (!cancelled) {
+                        setTitleInput(newTitle);
+                        setDocument((current) =>
+                            current ? { ...current, title: newTitle } : current
+                        );
                     }
                 },
             });
@@ -184,7 +251,7 @@ export const EditorPage = () => {
                 providerRef.current = null;
             }
         };
-    }, [docId, document, user]);
+    }, [docId, document?.id, user]);
 
     if (error && !document) {
         return (
@@ -195,8 +262,8 @@ export const EditorPage = () => {
                 <h1 className="mt-4 text-2xl font-semibold">Document unavailable</h1>
                 <p className="mt-2 text-sm text-red-600">{error}</p>
                 <p className="mt-4 text-sm text-gray-500">
-                    The link may be unknown, or its 24-hour retention window has expired without
-                    anyone saving the document.
+                    The link may be unknown, or it may have been deleted or expired without being
+                    saved.
                 </p>
             </main>
         );
@@ -216,13 +283,27 @@ export const EditorPage = () => {
         <main className="mx-auto flex h-dvh max-w-6xl flex-col px-4 py-4">
             <header className="flex items-center justify-between gap-3 pb-3">
                 <span className="flex min-w-0 items-center gap-3">
-                    <Link to="/dashboard" className="text-sm text-blue-600">
+                    <Link to="/dashboard" className="text-sm text-blue-600 shrink-0">
                         ← Dashboard
                     </Link>
-                    <h1 className="truncate text-lg font-semibold">{document.title}</h1>
+                    <input
+                        type="text"
+                        value={titleInput}
+                        onChange={(e) => setTitleInput(e.target.value)}
+                        onBlur={() => void handleRename()}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                                e.currentTarget.blur();
+                            }
+                        }}
+                        maxLength={120}
+                        placeholder="Untitled document"
+                        className="w-44 sm:w-64 md:w-80 truncate rounded border border-transparent bg-transparent px-1.5 py-0.5 text-lg font-semibold text-gray-900 transition-colors hover:border-gray-300 focus:border-blue-500 focus:bg-white focus:outline-none"
+                        title="Click to rename"
+                    />
                 </span>
 
-                <span className="flex shrink-0 items-center gap-3">
+                <span className="flex shrink-0 items-center gap-2 sm:gap-3">
                     <button
                         type="button"
                         onClick={() => void performSave()}
@@ -231,6 +312,18 @@ export const EditorPage = () => {
                     >
                         {saving ? "Saving…" : dirty ? "Save" : "Saved"}
                     </button>
+
+                    {user && (
+                        <button
+                            type="button"
+                            onClick={() => void handleDelete()}
+                            disabled={deleting}
+                            className="rounded-md border border-red-200 bg-red-50 px-2.5 py-1.5 text-sm font-medium text-red-600 hover:bg-red-100 disabled:opacity-60"
+                            title="Delete this document"
+                        >
+                            {deleting ? "Deleting…" : "Delete"}
+                        </button>
+                    )}
 
                     {dirty || !document.saved ? (
                         <span
