@@ -12,10 +12,10 @@ import { editorExtensions } from "../lib/codemirrorSetup";
 import { SaveLoginModal } from "../components/SaveLoginModal";
 
 const connectionView: Record<ConnectionStatus, { label: string; dot: string; text: string }> = {
-    connected: { label: "Live", dot: "bg-emerald-500", text: "text-emerald-600" },
-    connecting: { label: "Connecting…", dot: "bg-gray-400", text: "text-gray-500" },
-    reconnecting: { label: "Reconnecting…", dot: "bg-amber-500", text: "text-amber-600" },
-    disconnected: { label: "Offline", dot: "bg-red-500", text: "text-red-500" },
+    connected: { label: "Live", dot: "bg-emerald-500", text: "text-emerald-400" },
+    connecting: { label: "Connecting…", dot: "bg-muted", text: "text-muted" },
+    reconnecting: { label: "Reconnecting…", dot: "bg-amber-500", text: "text-amber-400" },
+    disconnected: { label: "Offline", dot: "bg-danger", text: "text-danger" },
 };
 
 export const EditorPage = () => {
@@ -256,12 +256,12 @@ export const EditorPage = () => {
     if (error && !document) {
         return (
             <main className="mx-auto max-w-2xl px-4 py-12">
-                <Link to="/dashboard" className="text-sm text-blue-600">
+                <Link to="/dashboard" className="text-sm text-primary">
                     ← Dashboard
                 </Link>
                 <h1 className="mt-4 text-2xl font-semibold">Document unavailable</h1>
-                <p className="mt-2 text-sm text-red-600">{error}</p>
-                <p className="mt-4 text-sm text-gray-500">
+                <p className="mt-2 text-sm text-danger">{error}</p>
+                <p className="mt-4 text-sm text-muted">
                     The link may be unknown, or it may have been deleted or expired without being
                     saved.
                 </p>
@@ -272,7 +272,7 @@ export const EditorPage = () => {
     if (!document) {
         return (
             <main className="mx-auto max-w-2xl px-4 py-12">
-                <p className="text-sm text-gray-500">Loading document…</p>
+                <p className="text-sm text-muted">Loading document…</p>
             </main>
         );
     }
@@ -283,7 +283,7 @@ export const EditorPage = () => {
         <main className="mx-auto flex h-dvh max-w-6xl flex-col px-4 py-4">
             <header className="flex items-center justify-between gap-3 pb-3">
                 <span className="flex min-w-0 items-center gap-3">
-                    <Link to="/dashboard" className="text-sm text-blue-600 shrink-0">
+                    <Link to="/dashboard" className="text-sm text-primary shrink-0">
                         ← Dashboard
                     </Link>
                     <input
@@ -298,7 +298,7 @@ export const EditorPage = () => {
                         }}
                         maxLength={120}
                         placeholder="Untitled document"
-                        className="w-44 sm:w-64 md:w-80 truncate rounded border border-transparent bg-transparent px-1.5 py-0.5 text-lg font-semibold text-gray-900 transition-colors hover:border-gray-300 focus:border-blue-500 focus:bg-white focus:outline-none"
+                        className="w-44 sm:w-64 md:w-80 truncate rounded border border-transparent bg-transparent px-1.5 py-0.5 text-lg font-semibold text-text transition-colors hover:border-border focus:border-primary focus:bg-surface focus:outline-none"
                         title="Click to rename"
                     />
                 </span>
@@ -308,7 +308,7 @@ export const EditorPage = () => {
                         type="button"
                         onClick={() => void performSave()}
                         disabled={saving}
-                        className="rounded-md bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700 disabled:opacity-60"
+                        className="rounded-md bg-primary px-3 py-1.5 text-sm text-white hover:bg-primary-hover disabled:opacity-60"
                     >
                         {saving ? "Saving…" : dirty ? "Save" : "Saved"}
                     </button>
@@ -318,7 +318,7 @@ export const EditorPage = () => {
                             type="button"
                             onClick={() => void handleDelete()}
                             disabled={deleting}
-                            className="rounded-md border border-red-200 bg-red-50 px-2.5 py-1.5 text-sm font-medium text-red-600 hover:bg-red-100 disabled:opacity-60"
+                            className="rounded-md border border-danger/40 bg-danger/10 px-2.5 py-1.5 text-sm font-medium text-danger hover:bg-danger/20 disabled:opacity-60"
                             title="Delete this document"
                         >
                             {deleting ? "Deleting…" : "Delete"}
@@ -328,7 +328,9 @@ export const EditorPage = () => {
                     {dirty || !document.saved ? (
                         <span
                             className={`hidden rounded-full px-2.5 py-1 text-xs font-medium sm:inline ${
-                                dirty ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-500"
+                                dirty
+                                    ? "bg-amber-500/15 text-amber-300"
+                                    : "bg-surface-hover text-muted"
                             }`}
                         >
                             {dirty ? "Unsaved changes" : "Unsaved"}
@@ -345,7 +347,7 @@ export const EditorPage = () => {
                                         : collaborator.name
                                 }
                                 style={{ backgroundColor: collaborator.color }}
-                                className="-ml-1.5 inline-flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border-2 border-white text-[11px] font-bold text-white first:ml-0"
+                                className="-ml-1.5 inline-flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border-2 border-bg text-[11px] font-bold text-white first:ml-0"
                             >
                                 {collaborator.name.trim().charAt(0).toUpperCase() || "?"}
                             </span>
@@ -360,7 +362,7 @@ export const EditorPage = () => {
             </header>
 
             {(error ?? saveError) && (
-                <p className="mb-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+                <p className="mb-3 rounded-md border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">
                     {error ?? saveError}
                 </p>
             )}
@@ -375,7 +377,7 @@ export const EditorPage = () => {
             <div className="min-h-0 flex-1">
                 <div
                     ref={editorHost}
-                    className="h-full min-w-0 overflow-hidden rounded-lg border border-gray-300 bg-white"
+                    className="h-full min-w-0 overflow-hidden rounded-lg border border-border bg-surface"
                 />
             </div>
         </main>

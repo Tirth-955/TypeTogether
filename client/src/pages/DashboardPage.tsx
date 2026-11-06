@@ -76,7 +76,7 @@ export const DashboardPage = () => {
     if (loading) {
         return (
             <main className="mx-auto max-w-2xl px-4 py-12">
-                <p className="text-sm text-gray-500">Loading…</p>
+                <p className="text-sm text-muted">Loading…</p>
             </main>
         );
     }
@@ -89,28 +89,28 @@ export const DashboardPage = () => {
                     <button
                         type="button"
                         onClick={() => setCreating(true)}
-                        className="rounded-md bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700"
+                        className="rounded-md bg-primary px-3 py-1.5 text-sm text-white hover:bg-primary-hover"
                     >
                         New document
                     </button>
                     {user ? (
                         <>
-                            <span className="text-sm text-gray-500">{user.email}</span>
+                            <span className="text-sm text-muted">{user.email}</span>
                             <button
                                 type="button"
                                 onClick={() => void logout()}
-                                className="rounded-md border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-100"
+                                className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-surface-hover"
                             >
                                 Log out
                             </button>
                         </>
                     ) : (
-                        <span className="text-sm text-gray-500">
-                            <Link to="/login" className="text-blue-600">
+                        <span className="text-sm text-muted">
+                            <Link to="/login" className="text-primary hover:underline">
                                 Log in
                             </Link>
                             {" · "}
-                            <Link to="/signup" className="text-blue-600">
+                            <Link to="/signup" className="text-primary hover:underline">
                                 Sign up
                             </Link>
                         </span>
@@ -119,7 +119,7 @@ export const DashboardPage = () => {
             </header>
 
             {!user && (
-                <p className="mt-4 text-sm text-gray-500">
+                <p className="mt-4 text-sm text-muted">
                     Create documents without an account — the share link is the only thing anyone
                     needs. Log in to keep a list of your saved documents and to make links permanent
                     by saving.
@@ -128,27 +128,27 @@ export const DashboardPage = () => {
 
             {user && (
                 <>
-                    {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
+                    {error && <p className="mt-4 text-sm text-danger">{error}</p>}
 
                     {documents === null ? (
-                        <p className="mt-4 text-sm text-gray-500">Loading documents…</p>
+                        <p className="mt-4 text-sm text-muted">Loading documents…</p>
                     ) : documents.length === 0 ? (
-                        <p className="mt-4 text-sm text-gray-500">No saved documents yet.</p>
+                        <p className="mt-4 text-sm text-muted">No saved documents yet.</p>
                     ) : (
                         <ul className="mt-4 flex flex-col gap-2">
                             {documents.map((document) => (
                                 <li
                                     key={document.id}
-                                    className="group flex items-center justify-between rounded-lg border border-gray-200 bg-white hover:border-gray-300"
+                                    className="group flex items-center justify-between rounded-lg border border-border bg-surface hover:border-surface-hover"
                                 >
                                     <Link
                                         to={`/d/${document.id}`}
-                                        className="flex-1 rounded-l-lg px-4 py-3 hover:bg-blue-50/50"
+                                        className="flex-1 rounded-l-lg px-4 py-3 hover:bg-primary/5"
                                     >
-                                        <span className="font-medium text-gray-900">
+                                        <span className="font-medium text-text">
                                             {document.title}
                                         </span>
-                                        <span className="mt-0.5 block text-sm text-gray-500">
+                                        <span className="mt-0.5 block text-sm text-muted">
                                             {"updated "}
                                             {new Date(document.updatedAt).toLocaleString()}
                                         </span>
@@ -159,7 +159,7 @@ export const DashboardPage = () => {
                                             void handleDeleteDoc(document.id, document.title)
                                         }
                                         disabled={deletingId === document.id}
-                                        className="mr-3 rounded px-2.5 py-1.5 text-xs font-medium text-gray-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                                        className="mr-3 rounded px-2.5 py-1.5 text-xs font-medium text-muted hover:bg-danger/10 hover:text-danger disabled:opacity-50"
                                         title="Delete document"
                                     >
                                         {deletingId === document.id ? "Deleting…" : "Delete"}

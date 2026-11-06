@@ -58,11 +58,11 @@ export const CreateDocumentModal = ({ onClose, onCreated }: Props) => {
                 onClick={onClose}
             >
                 <div
-                    className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg"
+                    className="w-full max-w-md rounded-lg border border-border bg-surface p-6 shadow-lg"
                     onClick={(event) => event.stopPropagation()}
                 >
-                    <h2 className="text-lg font-semibold">Share this document</h2>
-                    <p className="mt-2 text-sm text-gray-500">
+                    <h2 className="text-lg font-semibold text-text">Share this document</h2>
+                    <p className="mt-2 text-sm text-muted">
                         Anyone with this link can edit it live for the next 24 hours. Saving (once
                         logged in) makes the link permanent.
                     </p>
@@ -73,24 +73,24 @@ export const CreateDocumentModal = ({ onClose, onCreated }: Props) => {
                             readOnly
                             value={`${window.location.origin}${created.shareUrl}`}
                             onFocus={(event) => event.target.select()}
-                            className="min-w-0 flex-1 rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-sm"
+                            className="min-w-0 flex-1 rounded-md border border-border bg-bg px-3 py-2 text-sm text-muted"
                         />
                         <button
                             type="button"
                             onClick={() => void copyShareLink()}
-                            className="shrink-0 rounded-md bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700"
+                            className="shrink-0 rounded-md bg-primary px-3 py-2 text-sm text-white hover:bg-primary-hover"
                         >
                             {copied ? "Copied!" : "Copy"}
                         </button>
                     </div>
 
-                    {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+                    {error && <p className="mt-2 text-sm text-danger">{error}</p>}
 
                     <div className="mt-4 flex justify-end gap-2">
                         <button
                             type="button"
                             onClick={onClose}
-                            className="rounded-md border border-gray-300 px-3 py-2 text-sm hover:bg-gray-100"
+                            className="rounded-md border border-border px-3 py-2 text-sm text-muted hover:bg-surface-hover hover:text-text"
                         >
                             Close
                         </button>
@@ -100,7 +100,7 @@ export const CreateDocumentModal = ({ onClose, onCreated }: Props) => {
                                 navigate(`/d/${created.id}`);
                                 onClose();
                             }}
-                            className="rounded-md bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700"
+                            className="rounded-md bg-primary px-3 py-2 text-sm text-white hover:bg-primary-hover"
                         >
                             Open document
                         </button>
@@ -116,10 +116,10 @@ export const CreateDocumentModal = ({ onClose, onCreated }: Props) => {
             onClick={onClose}
         >
             <div
-                className="w-full max-w-sm rounded-lg bg-white p-6 shadow-lg"
+                className="w-full max-w-sm rounded-lg border border-border bg-surface p-6 shadow-lg"
                 onClick={(event) => event.stopPropagation()}
             >
-                <h2 className="text-lg font-semibold">New document</h2>
+                <h2 className="text-lg font-semibold text-text">New document</h2>
 
                 <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-4">
                     <input
@@ -130,23 +130,23 @@ export const CreateDocumentModal = ({ onClose, onCreated }: Props) => {
                         maxLength={120}
                         required
                         autoFocus
-                        className="rounded-md border border-gray-300 bg-white px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="rounded-md border border-border bg-bg px-3 py-2 text-text focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40"
                     />
 
-                    {error && <p className="text-sm text-red-600">{error}</p>}
+                    {error && <p className="text-sm text-danger">{error}</p>}
 
                     <div className="flex justify-end gap-2">
                         <button
                             type="button"
                             onClick={onClose}
-                            className="rounded-md border border-gray-300 px-3 py-2 text-sm hover:bg-gray-100"
+                            className="rounded-md border border-border px-3 py-2 text-sm text-muted hover:bg-surface-hover hover:text-text"
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
                             disabled={submitting}
-                            className="rounded-md bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-60"
+                            className="rounded-md bg-primary px-3 py-2 text-sm text-white hover:bg-primary-hover disabled:opacity-60"
                         >
                             {submitting ? "Creating…" : "Create"}
                         </button>

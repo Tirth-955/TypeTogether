@@ -44,7 +44,7 @@ export const LoginPage = () => {
                     placeholder="Email"
                     required
                     autoFocus
-                    className="rounded-md border border-gray-300 bg-white px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="rounded-md border border-border bg-surface px-3 py-2 text-text focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40"
                 />
                 <input
                     type="password"
@@ -52,20 +52,20 @@ export const LoginPage = () => {
                     onChange={(event) => setPassword(event.target.value)}
                     placeholder="Password"
                     required
-                    className="rounded-md border border-gray-300 bg-white px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="rounded-md border border-border bg-surface px-3 py-2 text-text focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40"
                 />
-                {error && <p className="text-sm text-red-600">{error}</p>}
+                {error && <p className="text-danger">{error}</p>}
                 <button
                     type="submit"
                     disabled={submitting}
-                    className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-60"
+                    className="rounded-md bg-primary px-4 py-2 text-white hover:bg-primary-hover disabled:opacity-60"
                 >
-                    {submitting ? "Logging in…" : "Log in"}
+                    Log in
                 </button>
             </form>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-muted">
                 No account yet?{" "}
-                <Link to="/signup" className="text-blue-600">
+                <Link to="/signup" className="text-primary hover:underline">
                     Sign up
                 </Link>
             </p>
