@@ -1,7 +1,9 @@
 import axios, { isAxiosError } from "axios";
 
+const API_BASE = import.meta.env.VITE_API_URL ?? "";
+
 const http = axios.create({
-    baseURL: "/api/v1",
+    baseURL: `${API_BASE}/api/v1`,
     withCredentials: true,
 });
 

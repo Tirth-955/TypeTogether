@@ -2,6 +2,8 @@ import { io, type Socket } from "socket.io-client";
 import * as Y from "yjs";
 import { applyAwarenessUpdate, Awareness, encodeAwarenessUpdate } from "y-protocols/awareness";
 
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL;
+
 export type CollabDocumentMeta = {
     id: string;
     title: string;
@@ -73,7 +75,9 @@ export class CollabProvider {
         this.onConnectionChange = options.onConnectionChange ?? (() => undefined);
         this.onTitleChange = options.onTitleChange ?? (() => undefined);
 
-        this.socket = io({ withCredentials: true });
+        this.socket = SOCKET_URL
+            ? io(SOCKET_URL, { withCredentials: true })
+            : io({ withCredentials: true });
 
         const ydoc = this.ydoc;
         const awareness = this.awareness;
